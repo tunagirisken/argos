@@ -1,0 +1,35 @@
+{
+  "last_updated": "2026-06-02T19:00:00",
+  "cash_usd": 226,
+  "positions": [
+    {
+      "symbol": "MRVL",
+      "name": "Marvell Technology",
+      "shares": 2.50,
+      "avg_cost": 262.12,
+      "stop_loss": 310.00,
+      "stop_loss_shares": 1.5,
+      "target": 400.00,
+      "note": "Jensen Huang trilyon dolar şirketi dedi. 1 hisse $165.73 maliyet, 1.5 hisse $326 maliyet."
+    },
+    {
+      "symbol": "AVAV",
+      "name": "AeroVironment",
+      "shares": 3,
+      "avg_cost": 170.52,
+      "stop_loss": 185.00,
+      "target": 305.00,
+      "note": "Drone/savunma teması, analist hedefi $305"
+    },
+    {
+      "symbol": "NVDA",
+      "name": "NVIDIA",
+      "shares": 2,
+      "avg_cost": 185.70,
+      "stop_loss": 200.00,
+      "target": 296.00,
+      "note": "4 Haziran temettü $0.25/hisse"
+    }
+  ],
+  "pending_orders": []
+}

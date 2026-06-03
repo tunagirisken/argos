@@ -1,0 +1,13 @@
+---
+description: ARGOS backend Python kuralları
+globs: backend/**/*.py
+alwaysApply: false
+---
+
+# Backend
+
+- Import: `from backend.<modül>...` (repo kökünden uvicorn).
+- Servis hataları: try/except + log; kritikte Telegram + Sentry.
+- Yeni route → `api/routes/` + `main.py` include; `ai/context/api-endpoints.md` güncelle.
+- Scheduler işlerine gereksiz Claude ekleme (`token-policy.md`).
+- JSON yazımı: `utils/json_store.write_json`.

@@ -1,0 +1,12 @@
+---
+description: ARGOS global — token-verimli bağlam yükleme
+alwaysApply: true
+---
+
+# ARGOS
+
+- Repo: portföy botu. Kök talimat: `AGENTS.md`.
+- **Bağlam:** Göreve göre yalnızca bir `ai/context/*.md` oku; tüm codebase taramasından kaçın.
+- Yorumlar Türkçe; minimal diff; `.env` commit etme.
+- Claude runtime kuralları: `ai/context/token-policy.md`.
+- Plan dosyalarını (`*.plan.md`) düzenleme.
