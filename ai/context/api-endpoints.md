@@ -21,6 +21,11 @@
 | POST | `/alerts` | alerts |
 | DELETE | `/alerts/{id}` | alerts |
 | WS | `/ws/prices` | websocket |
+| GET | `/setup/status` | setup |
+| POST | `/setup/env` | setup |
+| POST | `/setup/portfolio` | setup |
+| POST | `/setup/complete` | setup |
+| DELETE | `/setup/reset` | setup |
 | GET | `/health` | main |
 
 CORS: `localhost:3000`. Swagger: `/docs`.

@@ -18,11 +18,18 @@ Kişisel portföy yönetim botu — FastAPI backend, Telegram bildirimleri, tekn
 ```bash
 git clone git@github.com:tunagirisken/argos.git
 cd argos
-make install
-cp backend/.env.example backend/.env   # anahtarları doldurun
-make run
+make install-all    # Python + npm bağımlılıkları
+make start          # Backend + frontend birlikte (geliştirme)
 ```
 
+| Komut | Ne yapar |
+|--------|----------|
+| `make start` | API **:8000** + UI **:5173** (Vite `/api` ve `/ws` proxy) |
+| `make prod` | Tek port **:8000** — derlenmiş UI + API |
+| `make test-all` | pytest + `frontend` production build |
+
+- Geliştirme UI: http://localhost:5173
+- Tek port (prod): http://localhost:8000
 - API dokümantasyonu: http://localhost:8000/docs
 - Sağlık: http://localhost:8000/health
 
@@ -31,11 +38,15 @@ make run
 ```
 argos/
 ├── backend/          FastAPI uygulaması
+├── frontend/         React + Vite + TypeScript (tasarım sistemi)
+├── design/           HTML prototip (referans, build'e girmez)
 ├── ai/               AI bağlamı (token-verimli referans)
 ├── CLAUDE.md         Claude Code talimatları
 ├── AGENTS.md         Cursor agent talimatları
 └── Makefile
 ```
+
+İlk açılışta **Setup Wizard** (3 adım) görünür; tamamlanınca dashboard açılır. Frontend, backend ile aynı origin üzerinden `/api` ve `/ws` kullanır (geliştirmede Vite proxy, üretimde tek uvicorn süreci).
 
 ## Ortam değişkenleri
 

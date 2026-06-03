@@ -1,0 +1,84 @@
+/* ARGOS — Design tokens (design/styles.css :root birebir) */
+
+:root {
+  /* ---- Surfaces ---- */
+  --bg-base: #080810;
+  --bg-surface: #0f0f1a;
+  --bg-elevated: #161625;
+  --bg-overlay: #1d1d30;
+  --border-subtle: #1e1e35;
+  --border-default: #2a2a45;
+
+  /* ---- Accent (Argos Mavi-Mor) ---- */
+  --accent-primary: #7c6cf8;
+  --accent-hover: #6d5de8;
+  --accent-glow: rgba(124, 108, 248, 0.15);
+
+  /* ---- Durum ---- */
+  --positive: #00d084;
+  --positive-dim: rgba(0, 208, 132, 0.15);
+  --negative: #ff4d6a;
+  --negative-dim: rgba(255, 77, 106, 0.15);
+  --warning: #ffb547;
+  --warning-dim: rgba(255, 181, 71, 0.15);
+  --info: #40c8ff;
+
+  /* ---- Metin ---- */
+  --text-primary: #e8e8f0;
+  --text-secondary: #8888aa;
+  --text-muted: #4a4a6a;
+  --text-accent: #7c6cf8;
+
+  /* ---- Radius ---- */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  /* ---- Type ---- */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+
+  /* ---- Tipografi ölçekleri (tasarım doc) ---- */
+  --font-hero-size: 48px;
+  --font-hero-weight: 700;
+  --font-display-size: 32px;
+  --font-display-weight: 700;
+  --font-title-size: 20px;
+  --font-title-weight: 600;
+  --font-body-size: 14px;
+  --font-body-weight: 400;
+  --font-small-size: 12px;
+  --font-small-weight: 400;
+
+  /* ---- Tweakable (JS override) ---- */
+  --t-accent: var(--accent-primary);
+  --t-glow: 1;
+}
+
+/* Light theme — design/styles.css birebir */
+:root[data-theme="light"] {
+  --bg-base: #eef0f6;
+  --bg-surface: #ffffff;
+  --bg-elevated: #f3f4fa;
+  --bg-overlay: #ffffff;
+  --border-subtle: #e7e8f1;
+  --border-default: #d6d8e6;
+
+  --accent-primary: #6d5de8;
+  --accent-hover: #5d4dd8;
+  --accent-glow: rgba(124, 108, 248, 0.2);
+
+  --positive: #00a368;
+  --positive-dim: rgba(0, 163, 104, 0.13);
+  --negative: #e1314f;
+  --negative-dim: rgba(225, 49, 79, 0.13);
+  --warning: #d2860f;
+  --warning-dim: rgba(210, 134, 15, 0.15);
+  --info: #1f97d8;
+
+  --text-primary: #16182a;
+  --text-secondary: #5b5d77;
+  --text-muted: #9a9cb4;
+  --text-accent: #6d5de8;
+}

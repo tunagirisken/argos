@@ -11,6 +11,7 @@ Token tasarrufu için **modüler, kısa** referans dosyaları. Tümünü birden 
 | Servis / scheduler / alarm | `context/architecture.md` |
 | Claude / haber / Telegram | `context/token-policy.md` |
 | Bağımlılık / sürüm | `context/stack.md` |
+| Frontend / Vite | `context/frontend.md` |
 | Standart görev metni | `prompts/*.md` |
 
 ## Kök talimatlar

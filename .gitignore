@@ -1,3 +1,6 @@
+# Portable Node (opsiyonel, scripts/start.sh)
+.tools/
+
 # Python
 .venv/
 venv/
@@ -15,6 +18,10 @@ htmlcov/
 # Ortam ve gizli
 .env
 .env.local
+backend/.env
+backend/data/.setup_complete
+frontend/node_modules/
+frontend/dist/
 *.pem
 
 # Log ve geçici

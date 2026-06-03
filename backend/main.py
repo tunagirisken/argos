@@ -13,10 +13,12 @@ from backend.api.routes import (
     news,
     portfolio,
     prices,
+    setup,
     technical,
 )
 from backend.api.websocket import router as ws_router
 from backend.schedulers.jobs import start_scheduler, stop_scheduler
+from backend.ui import mount_frontend
 from backend.utils.logging_config import setup_logging
 
 # .env yükle
@@ -59,7 +61,13 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -73,6 +81,7 @@ app.include_router(technical.router, prefix=api_prefix)
 app.include_router(analysis.router, prefix=api_prefix)
 app.include_router(news.router, prefix=api_prefix)
 app.include_router(alerts.router, prefix=api_prefix)
+app.include_router(setup.router, prefix=api_prefix)
 
 # WebSocket
 app.include_router(ws_router)
@@ -82,6 +91,10 @@ app.include_router(ws_router)
 async def health():
     """Sağlık kontrolü."""
     return {"status": "ok", "service": "argos-backend"}
+
+
+if os.getenv("ARGOS_SERVE_UI", "").lower() in ("1", "true", "yes"):
+    mount_frontend(app)
 
 
 if __name__ == "__main__":
