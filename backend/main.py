@@ -3,14 +3,20 @@
 import os
 from contextlib import asynccontextmanager
 
-from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+from backend.api.middleware.jwt_auth import JWTAuthMiddleware
 
 from backend.api.routes import (
     alerts,
     analysis,
+    auth,
+    discovery,
+    docs,
+    market,
     news,
+    symbols,
     portfolio,
     prices,
     setup,
@@ -18,11 +24,16 @@ from backend.api.routes import (
 )
 from backend.api.websocket import router as ws_router
 from backend.schedulers.jobs import start_scheduler, stop_scheduler
+from backend.services.telegram_bot_service import start_bot, stop_bot
 from backend.ui import mount_frontend
+from backend.utils.env_config import load_env
 from backend.utils.logging_config import setup_logging
 
-# .env yükle
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
+load_env()
+
+if os.getenv("ENV", "development").lower() == "production":
+    if not (os.getenv("ARGOS_JWT_SECRET") or os.getenv("JWT_SECRET")):
+        raise RuntimeError("ARGOS_JWT_SECRET tanımlı olmalı (ENV=production)")
 
 # Sentry — mümkün olan en erken
 _sentry_dsn = os.getenv("SENTRY_DSN")
@@ -46,9 +57,11 @@ setup_logging(os.getenv("LOG_LEVEL", "INFO"))
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Başlangıç: scheduler. Kapanış: graceful stop."""
+    """Başlangıç: scheduler + Telegram bot. Kapanış: graceful stop."""
     start_scheduler()
+    await start_bot()
     yield
+    await stop_bot()
     stop_scheduler()
 
 
@@ -72,16 +85,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(JWTAuthMiddleware)
 
 # REST API
 api_prefix = "/api"
 app.include_router(portfolio.router, prefix=api_prefix)
 app.include_router(prices.router, prefix=api_prefix)
+app.include_router(market.router, prefix=api_prefix)
 app.include_router(technical.router, prefix=api_prefix)
 app.include_router(analysis.router, prefix=api_prefix)
+app.include_router(discovery.router, prefix=api_prefix)
 app.include_router(news.router, prefix=api_prefix)
 app.include_router(alerts.router, prefix=api_prefix)
 app.include_router(setup.router, prefix=api_prefix)
+app.include_router(auth.router, prefix=api_prefix)
+app.include_router(docs.router, prefix=api_prefix)
+app.include_router(symbols.router, prefix=api_prefix)
 
 # WebSocket
 app.include_router(ws_router)

@@ -6,9 +6,11 @@ import { MarketPill } from "./MarketPill";
 
 const TITLES: Record<string, string> = {
   dashboard: "Genel Bakış",
+  discovery: "Keşif Motoru",
   stock: "Hisse Detay",
   ai: "ARGOS Brain",
   alarms: "Alarmlar",
+  docs: "Dokümantasyon",
   settings: "Ayarlar",
 };
 

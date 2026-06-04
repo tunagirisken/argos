@@ -1,22 +1,35 @@
 import { create } from "zustand";
-import { FIXTURE_STOCKS, enrichStock } from "../fixtures/stocks";
+import {
+  buildStockFromMarket,
+  buildStockFromPosition,
+  mergeStockSnapshot,
+  type MarketBundle,
+  type MarketSnapshot,
+} from "../lib/stockFromMarket";
 import { api } from "../services/api";
-import type { PortfolioSummary, Stock } from "../types";
+import type { PortfolioSummary, Stock, TradeSignal } from "../types";
 
 interface PortfolioState {
   stocks: Stock[];
   summary: PortfolioSummary | null;
+  tradeSignals: TradeSignal[];
+  bundleWarnings: string[];
   wsConnected: boolean;
   loading: boolean;
+  loadError: string | null;
   load: () => Promise<void>;
-  applyWsPrices: (prices: Record<string, { price: number; change_pct: number }>) => void;
+  refreshMarket: () => Promise<void>;
+  applyMarketUpdate: (
+    snapshots: Record<string, MarketSnapshot | Record<string, unknown>>,
+    tradeSignals?: TradeSignal[]
+  ) => void;
   setWsConnected: (v: boolean) => void;
 }
 
-function buildSummary(stocks: Stock[], cash: number): PortfolioSummary {
+function buildSummary(stocks: Stock[], cash: number, dayPl?: number, dayPct?: number): PortfolioSummary {
   const invested = stocks.reduce((a, s) => a + s.value, 0);
   const totalCost = stocks.reduce((a, s) => a + s.totalCost, 0);
-  const dayPL = stocks.reduce((a, s) => a + s.dayPL, 0);
+  const dayPL = dayPl ?? stocks.reduce((a, s) => a + s.dayPL, 0);
   const totalValue = invested + cash;
   return {
     totalValue,
@@ -27,43 +40,85 @@ function buildSummary(stocks: Stock[], cash: number): PortfolioSummary {
     totalReturn: invested - totalCost,
     totalReturnPct: totalCost ? ((invested - totalCost) / totalCost) * 100 : 0,
     dayPL,
-    dayPct: totalValue - dayPL ? (dayPL / (totalValue - dayPL)) * 100 : 0,
+    dayPct: dayPct ?? (totalValue - dayPL ? (dayPL / (totalValue - dayPL)) * 100 : 0),
+  };
+}
+
+function parseSnapshots(raw: Record<string, unknown>): Record<string, MarketSnapshot> {
+  const out: Record<string, MarketSnapshot> = {};
+  for (const [sym, val] of Object.entries(raw)) {
+    const s = val as Record<string, unknown>;
+    if (s.error) continue;
+    out[sym] = {
+      symbol: sym,
+      price: Number(s.price),
+      change_pct: Number(s.change_pct ?? 0),
+      signal: String(s.signal ?? "BEKLE"),
+      confidence: s.confidence != null ? Number(s.confidence) : undefined,
+      signal_components: (s.signal_components as MarketSnapshot["signal_components"]) ?? [],
+      signal_sum: Number(s.signal_sum ?? 0),
+      indicators: s.indicators as MarketSnapshot["indicators"],
+    };
+  }
+  return out;
+}
+
+function positionInput(pos: Record<string, unknown>) {
+  return {
+    symbol: String(pos.symbol),
+    name: String(pos.name || pos.symbol),
+    shares: Number(pos.shares),
+    avg_cost: Number(pos.avg_cost),
+    stop_loss: Number(pos.stop_loss) || undefined,
+    target: Number(pos.target) || undefined,
+    sector: String(pos.sector || "Hisse"),
+    change_pct: Number(pos.change_pct) || undefined,
+    current_price: Number(pos.current_price) || undefined,
+    note: String(pos.note || ""),
   };
 }
 
 export const usePortfolioStore = create<PortfolioState>((set, get) => ({
-  stocks: FIXTURE_STOCKS,
-  summary: buildSummary(FIXTURE_STOCKS, 226),
+  stocks: [],
+  summary: null,
+  tradeSignals: [],
+  bundleWarnings: [],
   wsConnected: false,
   loading: false,
+  loadError: null,
 
   load: async () => {
-    set({ loading: true });
+    set({ loading: true, loadError: null, bundleWarnings: [] });
     try {
-      const [portfolio, prices, summaryRes] = await Promise.all([
-        api.getPortfolio(),
-        api.getPrices().catch(() => ({})),
-        api.getSummary().catch(() => null),
-      ]);
-
+      const portfolio = await api.getPortfolio();
       const positions = (portfolio.positions as Record<string, unknown>[]) || [];
       const cash = Number(portfolio.cash_usd) || 0;
+      const symbols = positions.map((p) => String(p.symbol));
+
+      const [summaryRes, bundlesRes, tradeRes] = await Promise.all([
+        api.getSummary().catch(() => null),
+        symbols.length ? api.getMarketBundles(symbols).catch(() => ({ bundles: {} })) : Promise.resolve({ bundles: {} }),
+        symbols.length
+          ? api.getTradeSignalsPortfolio().catch(() => ({ signals: [], count: 0 }))
+          : Promise.resolve({ signals: [], count: 0 }),
+      ]);
+
+      const bundles = (bundlesRes.bundles ?? {}) as Record<string, MarketBundle>;
+      const bundleWarnings: string[] = [];
 
       const stocks: Stock[] = positions.map((pos) => {
         const sym = String(pos.symbol);
-        const pd = (prices as Record<string, { price: number; change_pct: number }>)[sym];
-        return enrichStock({
-          t: sym,
-          name: String(pos.name || sym),
-          price: pd?.price ?? Number(pos.current_price) ?? Number(pos.avg_cost),
-          dayPct: pd?.change_pct ?? Number(pos.change_pct) ?? 0,
-          cost: Number(pos.avg_cost),
-          qty: Number(pos.shares),
-          stop: Number(pos.stop_loss) || Number(pos.avg_cost) * 0.92,
-          target: Number(pos.target) || Number(pos.avg_cost) * 1.15,
-          signal: "BEKLE",
-          rsi: 50,
-        });
+        const input = positionInput(pos);
+        const bundle = bundles[sym];
+        if (!bundle || bundle.error) {
+          if (symbols.length) {
+            bundleWarnings.push(
+              bundle?.error ? `${sym}: ${bundle.error}` : `${sym}: piyasa verisi alınamadı`
+            );
+          }
+          return buildStockFromPosition(input);
+        }
+        return buildStockFromMarket(input, bundle);
       });
 
       const summary = summaryRes
@@ -75,44 +130,74 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
             totalCost: Number(summaryRes.total_cost_basis),
             totalReturn: Number(summaryRes.total_unrealized_pl),
             totalReturnPct: Number(summaryRes.total_unrealized_pl_pct),
-            dayPL: stocks.reduce((a, s) => a + s.dayPL, 0),
-            dayPct: 0,
+            dayPL: Number(summaryRes.day_pl ?? stocks.reduce((a, s) => a + s.dayPL, 0)),
+            dayPct: Number(summaryRes.day_pl_pct ?? 0),
           }
         : buildSummary(stocks, cash);
 
-      set({ stocks, summary });
-    } catch {
+      set({ stocks, summary, tradeSignals: tradeRes.signals, bundleWarnings, loadError: null });
+    } catch (e) {
       set({
-        stocks: FIXTURE_STOCKS,
-        summary: buildSummary(FIXTURE_STOCKS, 226),
+        stocks: [],
+        summary: null,
+        tradeSignals: [],
+        bundleWarnings: [],
+        loadError: e instanceof Error ? e.message : "Portföy yüklenemedi.",
       });
     } finally {
       set({ loading: false });
     }
   },
 
-  applyWsPrices: (prices) => {
+  refreshMarket: async () => {
+    const symbols = get().stocks.map((s) => s.t);
+    if (!symbols.length) return;
+    try {
+      const [snapRes, tradeRes] = await Promise.all([
+        api.getMarketSnapshots(symbols),
+        api.getTradeSignalsPortfolio().catch(() => ({ signals: get().tradeSignals, count: 0 })),
+      ]);
+      get().applyMarketUpdate(parseSnapshots(snapRes.snapshots as Record<string, unknown>), tradeRes.signals);
+    } catch {
+      /* sessiz */
+    }
+  },
+
+  applyMarketUpdate: (rawSnapshots, tradeSignals) => {
+    const snapshots = parseSnapshots(rawSnapshots as Record<string, unknown>);
+    const flashedPrice: string[] = [];
+    const flashedSignal: string[] = [];
     const stocks = get().stocks.map((s) => {
-      const p = prices[s.t];
-      if (!p) return s;
-      const price = p.price;
-      const dayPct = p.change_pct;
-      const value = price * s.qty;
-      const totalPL = value - s.totalCost;
-      const totalPct = (totalPL / s.totalCost) * 100;
-      return {
-        ...s,
-        price,
-        dayPct,
-        value,
-        totalPL,
-        totalPct,
-        dayPL: value * (dayPct / (100 + dayPct)),
-        stopDist: ((price - s.stop) / price) * 100,
-      };
+      const snap = snapshots[s.t];
+      if (!snap || snap.error) return s;
+      const prevSignal = s.signal;
+      const merged = mergeStockSnapshot(s, snap);
+      if (merged.priceFlash) flashedPrice.push(s.t);
+      if (merged.signal !== prevSignal) flashedSignal.push(s.t);
+      return merged;
     });
-    const cash = get().summary?.cash ?? 0;
-    set({ stocks, summary: buildSummary(stocks, cash) });
+    const prevSummary = get().summary;
+    const cash = prevSummary?.cash ?? 0;
+    const rebuilt = buildSummary(stocks, cash);
+    const summary = prevSummary
+      ? { ...rebuilt, dayPL: prevSummary.dayPL, dayPct: prevSummary.dayPct }
+      : rebuilt;
+    set({
+      stocks,
+      summary,
+      ...(tradeSignals ? { tradeSignals } : {}),
+    });
+    if (flashedPrice.length || flashedSignal.length) {
+      window.setTimeout(() => {
+        set((state) => ({
+          stocks: state.stocks.map((st) =>
+            flashedPrice.includes(st.t) || flashedSignal.includes(st.t)
+              ? { ...st, priceFlash: null, signalFlash: undefined }
+              : st
+          ),
+        }));
+      }, 800);
+    }
   },
 
   setWsConnected: (wsConnected) => set({ wsConnected }),

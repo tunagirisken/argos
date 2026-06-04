@@ -1,17 +1,16 @@
 # ARGOS Frontend — Uygulama Planı
 
-> Durum: **Onay bekliyor** — bu planda kod yok; onay sonrası adım adım uygulanacak.
-> Referans: `design/` (TEK GERÇEK KAYNAK)
+> **Durum: Uygulandı (2026-06)** — Bu belge tarihsel plandır. Güncel mimari için `docs/STABILIZATION-AUDIT.md` ve `ai/context/frontend.md` kullanın.
 
 ---
 
-## 0. Mevcut durum
+## 0. Mevcut durum (güncel)
 
 | Bileşen | Durum |
 |---------|--------|
-| `design/*` | HTML+JSX prototip, `styles.css`, 2 tasarım doc |
-| `backend/` | FastAPI çalışıyor; **setup endpoint'leri yok** |
-| `frontend/` | Henüz yok |
+| `design/02_design/` | Referans prototip |
+| `backend/` | FastAPI — setup, portfolio, market, analysis, discovery, JWT korumalı API |
+| `frontend/` | Vite + React 18 + TS — tüm ekranlar canlı API ile |
 
 Backend portföyü `backend/data/portfolio.json` (MRVL, AVAV, NVDA). Prototip mock'u 6 hisse (MRVL, NVDA, TSLA, AAPL, AMD, PLTR) — API bağlanınca backend verisi esas alınacak.
 

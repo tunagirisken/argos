@@ -73,6 +73,14 @@ export function Icon({
           <path d="M10.5 20a1.7 1.7 0 0 0 3 0" />
         </Svg>
       );
+    case "book":
+    case "docs":
+      return (
+        <Svg size={size} style={style}>
+          <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H18v16H6.5A2.5 2.5 0 0 0 4 21.5V5.5Z" />
+          <path d="M6.5 3H20v16H6.5A2.5 2.5 0 0 1 4 21.5" />
+        </Svg>
+      );
     case "settings":
       return (
         <Svg size={size} style={style}>
@@ -179,10 +187,42 @@ export function Icon({
           <path d="m6 9 6 6 6-6" />
         </Svg>
       );
+    case "candles":
+      return (
+        <Svg size={size} style={style}>
+          <path d="M9 5v14M15 3v18" />
+        </Svg>
+      );
+    case "line":
+      return (
+        <Svg size={size} style={style}>
+          <path d="M3 17l6-6 4 4 8-10" />
+        </Svg>
+      );
     case "trash":
       return (
         <Svg size={size} style={style}>
           <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+        </Svg>
+      );
+    case "play":
+      return (
+        <Svg size={size} style={style}>
+          <path d="M8 5v14l11-7-11-7Z" fill="currentColor" stroke="none" />
+        </Svg>
+      );
+    case "search":
+      return (
+        <Svg size={size} style={style}>
+          <circle cx="11" cy="11" r="7" />
+          <path d="m20 20-4-4" />
+        </Svg>
+      );
+    case "copy":
+      return (
+        <Svg size={size} style={style}>
+          <rect x="9" y="9" width="11" height="11" rx="2" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
         </Svg>
       );
     default:

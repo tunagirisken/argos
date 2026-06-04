@@ -28,8 +28,14 @@ export interface Stock {
   logo: string;
   confidence: number;
   macd: number[];
+  priceFlash?: "pos" | "neg" | null;
+  signalFlash?: string;
+  note?: string;
   closesFull: number[];
   bb: ReturnType<typeof import("./lib/indicators").bollinger>;
+  lw: import("./lib/lwc").LwSeries;
+  signals: SignalIndicator[];
+  signalSum: number;
 }
 
 export interface PortfolioSummary {
@@ -51,6 +57,28 @@ export interface NewsItem {
   src?: string;
   min?: number;
   sentiment?: "pos" | "neg" | "neu";
+}
+
+export type SignalIndicator = {
+  key: string;
+  val: number;
+  note: string;
+};
+
+export type TradeDecision = "AL" | "SAT" | "İZLE";
+
+export interface TradeSignal {
+  symbol: string;
+  score: number;
+  score_display: number;
+  decision: TradeDecision;
+  components: Record<string, number>;
+  confidence: string;
+  tech_sum?: number;
+  news_score?: number;
+  price?: number;
+  last_decision?: string | null;
+  position?: { avg_cost: number; return_pct: number };
 }
 
 export interface AlarmRow {

@@ -1,61 +1,83 @@
 # ARGOS
 
-Kişisel portföy yönetim botu — FastAPI backend, Telegram bildirimleri, teknik analiz ve Claude destekli raporlar.
+Kişisel portföy yönetim asistanı — FastAPI backend, React dashboard, Telegram bildirimleri, gerçek piyasa verisi (yfinance) ve LLM destekli analiz.
 
 **Repo:** [github.com/tunagirisken/argos](https://github.com/tunagirisken/argos)
 
 ## Özellikler
 
-- Portföy CRUD (`portfolio.json`)
-- Canlı fiyatlar (yfinance), teknik sinyaller (RSI, MACD, Bollinger, EMA)
-- Haberler: Firecrawl → Exa yedek (yalnızca başlık + URL)
-- Alarmlar: stop-loss, hedef, RSI, günlük hareket; Telegram
-- Zamanlanmış görevler (TR saati): brifing, açılış, kapanış
-- WebSocket `/ws/prices` (60 sn)
+- **Auth:** JWT login/register, setup wizard
+- **Portföy:** CRUD, canlı P/L, pozisyon ekleme/silme
+- **Piyasa:** yfinance fiyat + OHLCV grafikler (lightweight-charts)
+- **Teknik:** RSI, MACD, Bollinger, EMA → AL/SAT/BEKLE sinyalleri
+- **Trade asistanı:** Teknik + haber skoru → AL/SAT/İZLE
+- **Keşif motoru:** 4 katmanlı tarama + LLM tez (`/discovery`)
+- **Analist hedefleri:** yfinance konsensüs + Firecrawl doğrulama
+- **Haberler:** Firecrawl → Exa yedek
+- **Alarmlar:** stop-loss, hedef, RSI, büyük hareket → Telegram
+- **AI:** Sohbet, portföy analizi (Gemini/Claude)
+- **Canlı sync:** WebSocket market snapshots (60 sn) + REST fallback
+- **Zamanlanmış:** Sabah brifingi, açılış, kapanış (TR saati)
 
 ## Hızlı başlangıç
 
 ```bash
 git clone git@github.com:tunagirisken/argos.git
 cd argos
-make install-all    # Python + npm bağımlılıkları
-make start          # Backend + frontend birlikte (geliştirme)
+make install-all
+make start
 ```
 
 | Komut | Ne yapar |
 |--------|----------|
-| `make start` | API **:8000** + UI **:5173** (Vite `/api` ve `/ws` proxy) |
+| `make start` | API **:8000** + UI **:5173** |
 | `make prod` | Tek port **:8000** — derlenmiş UI + API |
-| `make test-all` | pytest + `frontend` production build |
+| `make test-all` | pytest + frontend build |
+| `make test` | Backend pytest only |
+| `make test-smoke` | Playwright dashboard smoke (`SMOKE_PASS` gerekli) |
 
 - Geliştirme UI: http://localhost:5173
-- Tek port (prod): http://localhost:8000
-- API dokümantasyonu: http://localhost:8000/docs
-- Sağlık: http://localhost:8000/health
+- Prod: http://localhost:8000
+- API docs: http://localhost:8000/docs
+- Health: http://localhost:8000/health
+
+İlk açılışta **Setup Wizard** (3 adım) görünür. Ortam: `backend/.env.example`.
 
 ## Proje yapısı
 
 ```
 argos/
-├── backend/          FastAPI uygulaması
-├── frontend/         React + Vite + TypeScript (tasarım sistemi)
-├── design/           HTML prototip (referans, build'e girmez)
-├── ai/               AI bağlamı (token-verimli referans)
-├── CLAUDE.md         Claude Code talimatları
-├── AGENTS.md         Cursor agent talimatları
+├── backend/          FastAPI, services, schedulers, data/
+├── frontend/         React + Vite + TypeScript
+├── design/           UI prototypes (referans, build'e girmez)
+├── ai/               AI bağlamı ve promptlar
+├── docs/             Operasyon ve audit dokümanları
+├── scripts/          start, test, integrations
 └── Makefile
 ```
 
-İlk açılışta **Setup Wizard** (3 adım) görünür; tamamlanınca dashboard açılır. Frontend, backend ile aynı origin üzerinden `/api` ve `/ws` kullanır (geliştirmede Vite proxy, üretimde tek uvicorn süreci).
+## Güvenlik notu
 
-## Ortam değişkenleri
+Tüm `/api/*` endpoint'leri (auth login/register hariç) **JWT Bearer token** gerektirir. Üretimde `ARGOS_JWT_SECRET` zorunludur (`ENV=production`). WebSocket `/ws/prices` yerel geliştirmede açıktır. Ayrıntı: [docs/STABILIZATION-AUDIT.md](docs/STABILIZATION-AUDIT.md).
 
-`backend/.env.example` dosyasındaki anahtarlar: Anthropic, Telegram, Firecrawl, Exa, Sentry.
+## Dokümantasyon
 
-## AI / geliştirme
+| Doc | İçerik |
+|-----|--------|
+| [docs/STABILIZATION-AUDIT.md](docs/STABILIZATION-AUDIT.md) | Mimari audit, tech debt, roadmap |
+| [docs/TESTING.md](docs/TESTING.md) | Test ve QA checklist |
+| [ai/README.md](ai/README.md) | AI geliştirme bağlamı |
+| [docs/TELEGRAM-COMMANDS.md](docs/TELEGRAM-COMMANDS.md) | Bot komutları |
 
-Token tasarrufu için modüler bağlam: [`ai/README.md`](ai/README.md).
+## Cursor eklentileri
+
+```bash
+./scripts/setup-plugins.sh
+./scripts/check-integrations.sh
+```
+
+Ayrıntı: [docs/CURSOR-PLUGINS.md](docs/CURSOR-PLUGINS.md)
 
 ## Lisans
 
-MIT — bkz. [LICENSE](LICENSE)
+MIT — [LICENSE](LICENSE)

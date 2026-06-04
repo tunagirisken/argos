@@ -1,0 +1,23 @@
+{
+  "_comment": "Manuel güncellenebilir — likit ABD hisseleri (S&P büyük + momentum)",
+  "updated": "2026-06-03",
+  "symbols": [
+    "AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "GOOG", "META", "TSLA", "AVGO", "BRK-B",
+    "UNH", "JPM", "V", "XOM", "LLY", "JNJ", "WMT", "MA", "PG", "HD",
+    "CVX", "MRK", "ABBV", "PEP", "KO", "COST", "AMD", "ORCL", "CRM", "ADBE",
+    "NFLX", "DIS", "BAC", "WFC", "C", "GS", "MS", "AXP", "BLK", "SCHW",
+    "INTC", "QCOM", "TXN", "AMAT", "LRCX", "KLAC", "MU", "SNPS", "CDNS", "ADI",
+    "NXPI", "ON", "MRVL", "SMCI", "ARM", "PLTR", "COIN", "MSTR", "MARA", "RIOT",
+    "SQ", "PYPL", "SHOP", "SNOW", "NOW", "PANW", "CRWD", "ZS", "DDOG", "NET",
+    "UBER", "ABNB", "BA", "LMT", "RTX", "GE", "CAT", "DE", "UNP", "UPS",
+    "FDX", "TGT", "LOW", "SBUX", "MCD", "NKE", "LULU", "TJX", "CMCSA", "T",
+    "VZ", "TMUS", "PFE", "BMY", "AMGN", "GILD", "REGN", "VRTX", "ISRG", "MDT",
+    "HON", "UPS", "SPGI", "ICE", "CME", "MMC", "CB", "PGR", "SO", "DUK",
+    "NEE", "SLB", "EOG", "COP", "OXY", "HAL", "DVN", "FCX", "NEM", "AA",
+    "RIVN", "LCID", "NIO", "XPEV", "LI", "BABA", "JD", "PDD", "SE", "MELI",
+    "ROKU", "SNAP", "PINS", "RBLX", "U", "DKNG", "HOOD", "SOFI", "AFRM", "UPST",
+    "ENPH", "FSLR", "SEDG", "RUN", "PLUG", "CHPT", "IONQ", "RGTI", "QBTS", "AI",
+    "PATH", "S", "TWLO", "ZM", "DOCU", "OKTA", "HUBS", "VEEV", "WDAY", "TEAM",
+    "FTNT", "ANET", "DELL", "HPE", "IBM", "CSCO", "INTU", "ADSK", "ANSS", "KEYS"
+  ]
+}

@@ -1,150 +1,634 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { MacdMini } from "../../components/charts/MacdMini";
-import { PriceChart } from "../../components/charts/PriceChart";
-import { RsiGauge } from "../../components/charts/RsiGauge";
+import { TVChart } from "../../components/charts/TVChart";
+import { ScoreDial } from "../../components/charts/RsiMini";
 import { Icon } from "../../components/icons/Icon";
 import { fmtPct, fmtUSD } from "../../lib/format";
-import { api } from "../../services/api";
+import { buildWatchStockFromMarket } from "../../lib/stockFromMarket";
+import { ratingLabel, type LwSeries } from "../../lib/lwc";
+import type { Time } from "lightweight-charts";
+import { api, type AnalystTarget } from "../../services/api";
 import { usePortfolioStore } from "../../store/portfolioStore";
+import { useTheme } from "../../theme/ThemeContext";
+import type { SignalIndicator } from "../../types";
+import { TradeSignalCard } from "../../components/trade/TradeSignalCard";
+
+const TIME_RANGES = ["1G", "5G", "1A", "3A", "6A", "1Y"];
+
+function ScoreRow({ ind }: { ind: SignalIndicator }) {
+  const cls = ind.val > 0 ? "pos" : ind.val < 0 ? "neg" : "zero";
+  const txt = ind.val > 0 ? "AL" : ind.val < 0 ? "SAT" : "NÖTR";
+  const col = ind.val > 0 ? "var(--positive)" : ind.val < 0 ? "var(--negative)" : "var(--warning)";
+  return (
+    <div className="score-row">
+      <span className="lbl">{ind.key}</span>
+      <span className="note">{ind.note}</span>
+      <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span className={`score-ind ${cls}`}>
+          <i className="lo" />
+          <i className="mid" />
+          <i className="hi" />
+        </span>
+        <span className="tnum" style={{ fontSize: 10, fontWeight: 700, color: col, width: 30, textAlign: "right" }}>
+          {txt}
+        </span>
+      </span>
+    </div>
+  );
+}
+
+function DRow({ k, v, tone }: { k: string; v: string; tone?: string }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between" }}>
+      <span className="muted">{k}</span>
+      <span className={`tnum ${tone || ""}`} style={{ fontWeight: 600 }}>
+        {v}
+      </span>
+    </div>
+  );
+}
+
+function DField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <label style={{ flex: 1 }}>
+      <div className="faint" style={{ fontSize: 10.5, marginBottom: 5 }}>
+        {label}
+      </div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 5,
+          background: "var(--bg-base)",
+          border: "1px solid var(--border-default)",
+          borderRadius: "var(--radius-md)",
+          padding: "7px 9px",
+        }}
+      >
+        <span className="faint tnum">$</span>
+        <input
+          className="tnum"
+          type="number"
+          value={value}
+          onChange={(e) => onChange(+e.target.value)}
+          style={{
+            background: "transparent",
+            border: "none",
+            color: "var(--text-primary)",
+            width: "100%",
+            fontSize: 13,
+            outline: "none",
+            fontFamily: "var(--font-mono)",
+          }}
+        />
+      </div>
+    </label>
+  );
+}
 
 export function StockDetailPage() {
-  const { symbol = "MRVL" } = useParams();
+  const { symbol } = useParams();
+  const sym = (symbol || "").toUpperCase();
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const stocks = usePortfolioStore((s) => s.stocks);
   const load = usePortfolioStore((s) => s.load);
-  const s = stocks.find((x) => x.t === symbol) || stocks[0];
+  const refreshMarket = usePortfolioStore((s) => s.refreshMarket);
+  const tradeSignals = usePortfolioStore((s) => s.tradeSignals);
+  const portfolioStock = sym ? stocks.find((x) => x.t === sym) : undefined;
+  const [watchStock, setWatchStock] = useState<import("../../types").Stock | null>(null);
+  const [watchLoading, setWatchLoading] = useState(false);
+  const s = portfolioStock ?? watchStock ?? null;
+  const isWatchMode = !portfolioStock && !!watchStock;
+  const tradeSignal = tradeSignals.find((x) => x.symbol === sym) ?? null;
+
   const [range, setRange] = useState("3A");
-  const [mode, setMode] = useState<"candle" | "area">("candle");
-  const [overlays, setOverlays] = useState({ ema20: true, ema50: true, ema200: false, bollinger: false });
+  const [mode, setMode] = useState<"candle" | "line">("candle");
+  const [overlays, setOverlays] = useState({ ema20: true, ema50: true, bb: false });
   const [stop, setStop] = useState(s?.stop ?? 0);
   const [target, setTarget] = useState(s?.target ?? 0);
   const [note, setNote] = useState("");
-  const [news, setNews] = useState<{ title: string; url?: string }[]>([]);
+  const [saved, setSaved] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [news, setNews] = useState<{ title: string; url?: string; published_at?: string; source?: string; sentiment?: string }[]>([]);
+  const [chartLw, setChartLw] = useState<LwSeries | null>(null);
+  const [chartLoading, setChartLoading] = useState(true);
+  const [analyst, setAnalyst] = useState<AnalystTarget | null>(null);
+  const [analystLoading, setAnalystLoading] = useState(true);
+  const [syncingTarget, setSyncingTarget] = useState(false);
+  const [tradeRefreshing, setTradeRefreshing] = useState(false);
+
+  useEffect(() => {
+    if (!sym || portfolioStock) {
+      setWatchStock(null);
+      return;
+    }
+    let cancelled = false;
+    setWatchLoading(true);
+    api
+      .getMarketBundle(sym)
+      .then((bundle) => {
+        if (cancelled) return;
+        setWatchStock(buildWatchStockFromMarket(sym, bundle));
+      })
+      .catch(() => {
+        if (!cancelled) setWatchStock(null);
+      })
+      .finally(() => {
+        if (!cancelled) setWatchLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sym, portfolioStock]);
+
+  useEffect(() => {
+    if (!sym) return;
+    let cancelled = false;
+    setChartLoading(true);
+    api
+      .getMarketBundle(sym)
+      .then((data) => {
+        if (cancelled) return;
+        setChartLw({
+          daily: data.daily?.map((b) => ({ ...b, time: b.time as Time })) ?? [],
+          dailyVol: data.dailyVol?.map((b) => ({ ...b, time: b.time as Time })) ?? [],
+          intra: data.intra?.map((b) => ({ ...b, time: b.time as Time })) ?? [],
+          intraVol: data.intraVol?.map((b) => ({ ...b, time: b.time as Time })) ?? [],
+        });
+      })
+      .catch(() => {
+        if (!cancelled && s?.lw) setChartLw(s.lw);
+      })
+      .finally(() => {
+        if (!cancelled) setChartLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sym, s?.lw]);
 
   useEffect(() => {
     if (s) {
       setStop(s.stop);
       setTarget(s.target);
+      setNote(s.note ?? "");
     }
   }, [symbol, s]);
 
   useEffect(() => {
+    if (!s?.lw?.daily?.length) return;
+    setChartLw({
+      daily: s.lw.daily,
+      dailyVol: s.lw.dailyVol,
+      intra: s.lw.intra,
+      intraVol: s.lw.intraVol,
+    });
+  }, [s?.lw, s?.t, s?.price]);
+
+  useEffect(() => {
+    if (!sym) return;
+    api.getNews(sym).then(setNews).catch(() => setNews([]));
+  }, [sym]);
+
+  useEffect(() => {
     if (!symbol) return;
-    api.getNews(symbol).then(setNews).catch(() => setNews([]));
-  }, [symbol]);
+    setAnalystLoading(true);
+    api
+      .getAnalystTarget(sym)
+      .then(setAnalyst)
+      .catch(() => setAnalyst(null))
+      .finally(() => setAnalystLoading(false));
+  }, [sym]);
 
-  if (!s) return <div className="page">Hisse bulunamadı</div>;
+  const refreshTrade = async () => {
+    setTradeRefreshing(true);
+    try {
+      await refreshMarket();
+    } finally {
+      setTradeRefreshing(false);
+    }
+  };
 
-  const dayPos = s.dayPct >= 0;
-  const sigClass =
-    s.signal === "AL" || s.signal === "GÜÇLÜ AL" ? "buy" : s.signal === "SAT" || s.signal === "GÜÇLÜ SAT" ? "sell" : "hold";
-
-  const savePosition = async () => {
-    await api.updatePosition(s.t, { stop_loss: stop, target, note });
+  const applyAnalystTarget = async () => {
+    if (!analyst?.recommended_target) return;
+    setTarget(analyst.recommended_target);
+    await api.updatePosition(sym, { target: analyst.recommended_target });
     await load();
   };
 
+  const syncAllTargets = async () => {
+    setSyncingTarget(true);
+    try {
+      await api.syncTargets();
+      const info = await api.getAnalystTarget(sym);
+      setAnalyst(info);
+      if (info.recommended_target) setTarget(info.recommended_target);
+      await load();
+    } finally {
+      setSyncingTarget(false);
+    }
+  };
+
+  if (watchLoading && !s) return <div className="page">Hisse yükleniyor…</div>;
+  if (!s) return <div className="page">Hisse bulunamadı veya veri alınamadı.</div>;
+
+  const totPos = s.totalPct >= 0;
+  const dayPos = s.dayPct >= 0;
+  const rating = ratingLabel(s.signalSum);
+  const tog = (k: keyof typeof overlays) => setOverlays((o) => ({ ...o, [k]: !o[k] }));
+  const sentColor: Record<string, string> = {
+    pos: "var(--positive)",
+    neg: "var(--negative)",
+    neu: "var(--text-muted)",
+  };
+
+  const formatNewsAge = (published?: string) => {
+    if (!published) return "—";
+    const diff = Date.now() - new Date(published).getTime();
+    const min = Math.max(1, Math.round(diff / 60000));
+    return min < 60 ? `${min} dk önce` : `${Math.round(min / 60)} sa önce`;
+  };
+
+  const ovBtn = (k: keyof typeof overlays, label: string, color: string) => (
+    <button
+      type="button"
+      className={`chip${overlays[k] ? " active" : ""}`}
+      onClick={() => tog(k)}
+      style={{ display: "flex", alignItems: "center", gap: 6 }}
+    >
+      <span style={{ width: 9, height: 2.5, borderRadius: 2, background: color, display: "inline-block" }} /> {label}
+    </button>
+  );
+
+  const savePosition = async () => {
+    await api.updatePosition(s.t, { stop_loss: stop, target, note });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1500);
+    await load();
+  };
+
+  const removePosition = async () => {
+    setDeleting(true);
+    try {
+      await api.deletePosition(s.t);
+      await load();
+      navigate("/dashboard");
+    } finally {
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
+  };
+
   return (
-    <div className="page">
-      <button type="button" className="btn btn--ghost" onClick={() => navigate("/dashboard")} style={{ marginBottom: 18 }}>
-        <Icon name="back" size={16} /> Geri
-      </button>
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.85fr) minmax(280px, 1fr)", gap: 18 }}>
-        <div className="card">
-          <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
-            <span className="ticker-logo" style={{ background: s.logo, width: 44, height: 44 }}>
-              {s.t.slice(0, 2)}
-            </span>
-            <div>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
-                <span className="mono" style={{ fontSize: 20, fontWeight: 700 }}>
-                  {s.t}
-                </span>
-                <span className="muted">{s.name}</span>
-              </div>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginTop: 8 }}>
-                <span className="mono" style={{ fontSize: 38, fontWeight: 700 }}>
-                  {fmtUSD(s.price)}
-                </span>
-                <span className={`mono ${dayPos ? "pos" : "neg"}`} style={{ fontSize: 15, fontWeight: 600 }}>
-                  {dayPos ? "▲" : "▼"} {fmtPct(s.dayPct)} bugün
-                </span>
-              </div>
-            </div>
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, margin: "20px 0 6px" }}>
-            {["1G", "1H", "3A", "6A", "1Y"].map((r) => (
-              <button key={r} type="button" className={`chip${range === r ? " active" : ""}`} onClick={() => setRange(r)}>
-                {r}
-              </button>
-            ))}
-            <button type="button" className={`chip${mode === "candle" ? " active" : ""}`} onClick={() => setMode("candle")}>
-              Mum
-            </button>
-            <button type="button" className={`chip${mode === "area" ? " active" : ""}`} onClick={() => setMode("area")}>
-              Alan
-            </button>
-            {(["ema20", "ema50", "ema200", "bollinger"] as const).map((k) => (
-              <button
-                key={k}
-                type="button"
-                className={`chip${overlays[k] ? " active" : ""}`}
-                onClick={() => setOverlays((o) => ({ ...o, [k]: !o[k] }))}
-              >
-                {k.toUpperCase()}
-              </button>
-            ))}
-          </div>
-          <PriceChart stock={s} range={range} mode={mode} overlays={overlays} />
+    <div
+      className="page"
+      style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden", paddingBottom: 18 }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
+        <button
+          type="button"
+          className="btn btn--ghost"
+          onClick={() => navigate("/dashboard")}
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 11px" }}
+        >
+          <Icon name="back" size={15} /> Geri
+        </button>
+        <span className="ticker-logo" style={{ background: s.logo, width: 30, height: 30, fontSize: 11, borderRadius: 6 }}>
+          {s.t.slice(0, 2)}
+        </span>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+          <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: 17 }}>{s.t}</span>
+          <span className="muted" style={{ fontSize: 13 }}>
+            {s.name}
+          </span>
+          <span className="badge badge--accent">{s.sector}</span>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-          <div className="card">
-            <div className="section-label">Teknik Sinyal</div>
-            <span className={`badge badge--${sigClass}`} style={{ fontSize: 16, padding: "8px 18px" }}>
-              ● {s.signal}
-            </span>
-            <div className="rangebar" style={{ margin: "14px 0" }}>
-              <div className="rangebar__fill" style={{ width: `${s.confidence}%`, background: "var(--t-accent)" }} />
+        <div style={{ marginLeft: "auto", display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {stocks
+            .filter((x) => x.t !== s.t)
+            .map((x) => (
+              <button
+                key={x.t}
+                type="button"
+                className="chip"
+                onClick={() => navigate(`/stock/${x.t}`)}
+                style={{ display: "flex", alignItems: "center", gap: 6 }}
+              >
+                <span style={{ width: 6, height: 6, borderRadius: 2, background: x.logo }} /> {x.t}
+              </button>
+            ))}
+        </div>
+      </div>
+
+      <div className="detail" style={{ flex: 1, minHeight: 0 }}>
+        <div className="detail__main">
+          <div className="panel panel--chart">
+            <div className="chart-toolbar">
+              <div className="seg">
+                {TIME_RANGES.map((r) => (
+                  <button key={r} type="button" className={range === r ? "on" : ""} onClick={() => setRange(r)}>
+                    {r}
+                  </button>
+                ))}
+              </div>
+              <div style={{ width: 1, height: 20, background: "var(--border-default)" }} />
+              {ovBtn("ema20", "EMA20", "#ff9800")}
+              {ovBtn("ema50", "EMA50", "#ab47bc")}
+              {ovBtn("bb", "BB", "rgba(120,123,134,0.9)")}
+              <div className="seg" style={{ marginLeft: "auto" }}>
+                <button type="button" className={mode === "candle" ? "on" : ""} onClick={() => setMode("candle")}>
+                  <Icon name="candles" size={14} /> Mum
+                </button>
+                <button type="button" className={mode === "line" ? "on" : ""} onClick={() => setMode("line")}>
+                  <Icon name="line" size={14} /> Çizgi
+                </button>
+              </div>
             </div>
-            <RsiGauge value={s.rsi} />
-            <MacdMini data={s.macd} />
-          </div>
-          <div className="card">
-            <div className="section-label">Pozisyon</div>
-            <div className="mono" style={{ fontSize: 13, marginBottom: 12 }}>
-              {s.qty} hisse · maliyet {fmtUSD(s.cost)} · P/L {fmtPct(s.totalPct)}
-            </div>
-            <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
-              <label className="faint" style={{ flex: 1 }}>
-                Stop
-                <input className="input mono" type="number" value={stop} onChange={(e) => setStop(+e.target.value)} style={{ marginTop: 4 }} />
-              </label>
-              <label className="faint" style={{ flex: 1 }}>
-                Hedef
-                <input className="input mono" type="number" value={target} onChange={(e) => setTarget(+e.target.value)} style={{ marginTop: 4 }} />
-              </label>
-            </div>
-            <textarea className="input" rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Not" />
-            <button type="button" className="btn btn--accent" style={{ width: "100%", marginTop: 12 }} onClick={savePosition}>
-              Güncelle
-            </button>
-          </div>
-          <div className="card">
-            <div className="section-label">Haberler</div>
-            {news.length === 0 ? (
-              <p className="muted" style={{ fontSize: 13 }}>
-                Haber yok veya API anahtarı eksik.
-              </p>
-            ) : (
-              news.slice(0, 5).map((n, i) => (
-                <div key={i} style={{ padding: "10px 0", borderTop: i ? "1px solid var(--border-subtle)" : "none" }}>
-                  <a href={n.url} target="_blank" rel="noreferrer" style={{ color: "var(--text-primary)", fontSize: 13 }}>
-                    {n.title}
-                  </a>
+            <div className="chart-body">
+              {chartLoading ? (
+                <div
+                  className="faint"
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    display: "grid",
+                    placeItems: "center",
+                    zIndex: 2,
+                    fontSize: 13,
+                  }}
+                >
+                  Grafik yükleniyor…
                 </div>
-              ))
-            )}
+              ) : null}
+              {chartLw ? (
+                <TVChart lw={chartLw} range={range} mode={mode} overlays={overlays} theme={theme} />
+              ) : (
+                <div className="faint" style={{ padding: 40, textAlign: "center" }}>
+                  Grafik verisi alınamadı.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="detail__side">
+          <div className="panel">
+            <div className="panel__body" style={{ paddingBottom: 12 }}>
+              <div
+                className={`tnum ${s.priceFlash === "pos" ? "flash-pos" : s.priceFlash === "neg" ? "flash-neg" : ""}`}
+                key={s.price}
+                style={{ display: "inline-block", borderRadius: 4 }}
+              >
+                <span style={{ fontSize: 30, fontWeight: 700 }}>{fmtUSD(s.price)}</span>
+              </div>
+              <div style={{ display: "flex", gap: 10, marginTop: 6, alignItems: "center" }}>
+                <span className={`tnum ${dayPos ? "pos" : "neg"}`} style={{ fontSize: 14, fontWeight: 600 }}>
+                  {dayPos ? "▲" : "▼"} {fmtPct(s.dayPct)}
+                </span>
+                <span className="faint" style={{ fontSize: 11, display: "flex", alignItems: "center", gap: 5 }}>
+                  <span
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: "50%",
+                      background: "var(--positive)",
+                      animation: "pulse-dot 2s infinite",
+                    }}
+                  />{" "}
+                  canlı
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {!isWatchMode ? (
+          <div className="panel">
+            <div className="panel__head">
+              <span className="ttl">Pozisyon</span>
+            </div>
+            <div className="panel__body">
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "10px 14px",
+                  fontSize: 13,
+                  marginBottom: 14,
+                }}
+              >
+                <DRow k="Adet" v={s.qty.toString()} />
+                <DRow k="Maliyet" v={fmtUSD(s.cost)} />
+                <DRow k="Değer" v={fmtUSD(s.value, 0)} />
+                <DRow k="Getiri" v={fmtPct(s.totalPct)} tone={totPos ? "pos" : "neg"} />
+              </div>
+              <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+                <DField label="Stop-Loss" value={stop} onChange={setStop} />
+                <DField label="Hedef" value={target} onChange={setTarget} />
+              </div>
+              <textarea
+                className="input"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                rows={2}
+                style={{ resize: "none", fontSize: 12, lineHeight: 1.5 }}
+                placeholder="Not…"
+              />
+              <button
+                type="button"
+                className="btn btn--accent"
+                style={{ width: "100%", marginTop: 10, padding: 8 }}
+                onClick={savePosition}
+              >
+                {saved ? "✓ Kaydedildi" : "Güncelle"}
+              </button>
+              {confirmDelete ? (
+                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                  <button
+                    type="button"
+                    className="btn btn--ghost"
+                    style={{ flex: 1, color: "var(--negative)", fontSize: 12 }}
+                    disabled={deleting}
+                    onClick={removePosition}
+                  >
+                    {deleting ? "Kaldırılıyor…" : "Evet, kaldır"}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--ghost"
+                    style={{ fontSize: 12 }}
+                    disabled={deleting}
+                    onClick={() => setConfirmDelete(false)}
+                  >
+                    İptal
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn--ghost"
+                  style={{
+                    width: "100%",
+                    marginTop: 8,
+                    padding: "7px 8px",
+                    fontSize: 12,
+                    color: "var(--text-muted)",
+                  }}
+                  onClick={() => setConfirmDelete(true)}
+                >
+                  Pozisyonu kaldır
+                </button>
+              )}
+            </div>
+          </div>
+          ) : (
+            <div className="panel">
+              <div className="panel__body">
+                <p className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
+                  İzleme modu — bu sembol portföyünüzde değil. Pozisyon eklemek için dashboard&apos;daki &quot;Hisse Ekle&quot; kullanın.
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="panel">
+            <div className="panel__head">
+              <span className="ttl">Analist Hedefi</span>
+              <Icon name="target" size={16} style={{ marginLeft: 6, opacity: 0.6 }} />
+            </div>
+            <div className="panel__body">
+              {analystLoading ? (
+                <p className="muted" style={{ fontSize: 12 }}>
+                  yfinance + Firecrawl yükleniyor…
+                </p>
+              ) : !analyst?.recommended_target ? (
+                <p className="muted" style={{ fontSize: 12 }}>
+                  Analist konsensüsü bulunamadı.
+                </p>
+              ) : (
+                <>
+                  <div className="tnum" style={{ fontSize: 22, fontWeight: 700 }}>
+                    {fmtUSD(analyst.recommended_target)}
+                  </div>
+                  <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>
+                    Güven: {analyst.confidence}
+                    {analyst.analyst_count ? ` · ${analyst.analyst_count} analist` : ""}
+                  </p>
+                  {analyst.target_low != null && analyst.target_high != null ? (
+                    <p className="faint" style={{ fontSize: 11, marginTop: 4 }}>
+                      Aralık {fmtUSD(analyst.target_low)} – {fmtUSD(analyst.target_high)}
+                    </p>
+                  ) : null}
+                  {analyst.web?.target_mean ? (
+                    <p className="faint" style={{ fontSize: 11, marginTop: 4 }}>
+                      Web tarama: {fmtUSD(analyst.web.target_mean)} ({analyst.web.samples} örnek)
+                    </p>
+                  ) : null}
+                  {analyst.recommendation ? (
+                    <p className="muted" style={{ fontSize: 11, marginTop: 4 }}>
+                      Öneri: {analyst.recommendation}
+                    </p>
+                  ) : null}
+                </>
+              )}
+              <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+                {!isWatchMode ? (
+                  <>
+                    <button
+                      type="button"
+                      className="btn btn--ghost"
+                      style={{ fontSize: 12, flex: 1 }}
+                      disabled={!analyst?.recommended_target || syncingTarget}
+                      onClick={applyAnalystTarget}
+                    >
+                      Hedefe uygula
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn--ghost"
+                      style={{ fontSize: 12 }}
+                      disabled={syncingTarget}
+                      onClick={syncAllTargets}
+                    >
+                      {syncingTarget ? "…" : "Portföy sync"}
+                    </button>
+                  </>
+                ) : null}
+              </div>
+            </div>
+          </div>
+
+          <TradeSignalCard
+            data={tradeSignal}
+            onRefresh={refreshTrade}
+            refreshing={tradeRefreshing}
+          />
+
+          <div className="panel">
+            <div className="panel__head">
+              <span className="ttl">Sinyal Skoru</span>
+              <span className={`sigbadge ${rating.cls}${s.signalFlash ? " flash-signal" : ""}`} style={{ marginLeft: "auto" }}>
+                {rating.t}
+              </span>
+            </div>
+            <div className="panel__body">
+              <div className="score-head">
+                <div className="score-dial">
+                  <ScoreDial sum={s.signalSum} />
+                </div>
+                <div>
+                  <div className="muted" style={{ fontSize: 11 }}>
+                    5 göstergeden bileşik
+                  </div>
+                  <div className="tnum" style={{ fontSize: 13, fontWeight: 600 }}>
+                    {s.signals.filter((x) => x.val > 0).length} AL · {s.signals.filter((x) => x.val < 0).length} SAT ·{" "}
+                    {s.signals.filter((x) => x.val === 0).length} NÖTR
+                  </div>
+                </div>
+              </div>
+              <div className="score-rows">
+                {s.signals.map((ind) => (
+                  <ScoreRow key={ind.key} ind={ind} />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="panel">
+            <div className="panel__head">
+              <span className="ttl">Son Haberler</span>
+            </div>
+            <div className="panel__body" style={{ paddingTop: 4, paddingBottom: 6 }}>
+              {news.length === 0 ? (
+                <p className="muted" style={{ fontSize: 12 }}>
+                  Haber yok veya API anahtarı eksik.
+                </p>
+              ) : (
+                news.slice(0, 5).map((n, i) => (
+                  <div key={i} className="news-row">
+                    <span
+                      className="news-row__dot"
+                      style={{ background: sentColor[n.sentiment || "neu"] || sentColor.neu }}
+                    />
+                    <div>
+                      <div style={{ fontSize: 12.5, lineHeight: 1.45 }}>{n.title}</div>
+                      <div className="faint" style={{ fontSize: 10.5, marginTop: 3 }}>
+                        {(n.source || "Kaynak")} · {formatNewsAge(n.published_at)}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       </div>

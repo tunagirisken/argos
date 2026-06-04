@@ -1,0 +1,27 @@
+---
+description: Cursor eklentileri — Figma, shadcn, Firecrawl, Exa
+alwaysApply: false
+---
+
+# ARGOS Cursor eklentileri
+
+## Firecrawl
+- Web scrape / araştırma: **firecrawl** skill kullan (WebFetch/WebSearch yerine).
+- Runtime haber: `backend/services/news_service.py` — `FIRECRAWL_API_KEY` gerekir.
+
+## Exa
+- Marketplace plugin yoksa yeterli: `EXA_API_KEY` in `backend/.env`.
+- Haber yedek kaynak; birincil Firecrawl.
+
+## shadcn/ui
+- `frontend/components.json` mevcut; yeni UI için `npx shadcn@latest add <component>`.
+- ARGOS token renkleri `src/tokens.css` + `src/index.css` — hardcoded renk ekleme.
+- Mevcut `.card` sınıfları ile shadcn `Card` birlikte kullanılabilir.
+
+## Figma
+- UI senkron: önce **figma-use** skill oku, sonra MCP.
+- Referans: `design/` prototip; minimal diff.
+
+## Kontrol
+- `./scripts/check-integrations.sh`
+- `GET /api/setup/integrations`

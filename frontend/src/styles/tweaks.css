@@ -1,0 +1,192 @@
+.twk-fab {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 2147483645;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border-default);
+  background: var(--bg-elevated);
+  color: var(--t-accent);
+  font-size: 18px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  display: grid;
+  place-items: center;
+  transition: transform 0.15s, border-color 0.15s;
+}
+.twk-fab:hover {
+  transform: scale(1.05);
+  border-color: var(--t-accent);
+}
+
+.twk-panel {
+  position: fixed;
+  right: 16px;
+  bottom: 64px;
+  z-index: 2147483646;
+  width: 280px;
+  max-height: calc(100vh - 80px);
+  display: flex;
+  flex-direction: column;
+  background: color-mix(in srgb, var(--bg-elevated) 92%, transparent);
+  color: var(--text-primary);
+  backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid var(--border-default);
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
+  font: 11.5px/1.4 var(--font-sans);
+  overflow: hidden;
+}
+.twk-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 8px 10px 14px;
+  cursor: move;
+  user-select: none;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.twk-hd b {
+  font-size: 12px;
+  font-weight: 600;
+}
+.twk-x {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.twk-x:hover {
+  background: var(--bg-base);
+  color: var(--text-primary);
+}
+.twk-body {
+  padding: 2px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+}
+.twk-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.twk-row-h {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+.twk-lbl {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  color: var(--text-secondary);
+}
+.twk-lbl > span:first-child {
+  font-weight: 500;
+}
+.twk-val {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.twk-sect {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 10px 0 0;
+}
+.twk-sect:first-child {
+  padding-top: 8px;
+}
+.twk-slider {
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  margin: 6px 0;
+  border-radius: 999px;
+  background: var(--border-default);
+  outline: none;
+}
+.twk-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+}
+.twk-chips {
+  display: flex;
+  gap: 6px;
+}
+.twk-chip {
+  appearance: none;
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 0 0 0 0.5px var(--border-default);
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.twk-chip[data-on="1"] {
+  box-shadow: 0 0 0 2px var(--text-primary);
+}
+.twk-chip:hover {
+  transform: translateY(-1px);
+}
+.twk-seg {
+  display: flex;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--bg-base);
+  gap: 2px;
+}
+.twk-seg button {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 500;
+  min-height: 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-transform: capitalize;
+}
+.twk-seg button.active {
+  background: var(--bg-elevated);
+  color: var(--t-accent);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+.twk-toggle {
+  appearance: none;
+  border: 1px solid var(--border-default);
+  background: var(--bg-base);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.twk-toggle.on {
+  border-color: var(--t-accent);
+  color: var(--t-accent);
+  background: color-mix(in srgb, var(--t-accent) 12%, transparent);
+}

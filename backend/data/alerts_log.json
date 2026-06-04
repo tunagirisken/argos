@@ -1,1 +1,119 @@
-[]
+[
+  {
+    "id": "748116d1",
+    "timestamp": "2026-06-03T18:15:07.004420+03:00",
+    "type": "TARGET_HIT",
+    "symbol": "NVDA",
+    "message": "Fiyat $216.49 ≥ hedef $213.55",
+    "price": 216.49,
+    "sent_telegram": true
+  },
+  {
+    "id": "be3fe319",
+    "timestamp": "2026-06-03T18:25:00.827349+03:00",
+    "type": "TARGET_HIT",
+    "symbol": "NVDA",
+    "message": "Fiyat $216.14 ≥ hedef $213.55",
+    "price": 216.14,
+    "sent_telegram": true
+  },
+  {
+    "id": "e37604d0",
+    "timestamp": "2026-06-03T18:30:00.342049+03:00",
+    "type": "TARGET_HIT",
+    "symbol": "MRVL",
+    "message": "Fiyat $307.31 ≥ hedef $222.55",
+    "price": 307.31,
+    "sent_telegram": true
+  },
+  {
+    "id": "52b4d2d0",
+    "timestamp": "2026-06-03T18:30:00.537810+03:00",
+    "type": "BIG_MOVE",
+    "symbol": "MRVL",
+    "message": "Günlük değişim %5.7",
+    "price": 307.31,
+    "sent_telegram": true
+  },
+  {
+    "id": "cb330ac9",
+    "timestamp": "2026-06-03T18:30:01.036882+03:00",
+    "type": "RSI_OVERBOUGHT",
+    "symbol": "MRVL",
+    "message": "RSI 87 — aşırı alım",
+    "price": 307.31,
+    "sent_telegram": true
+  },
+  {
+    "id": "e774afb4",
+    "timestamp": "2026-06-03T18:30:01.291795+03:00",
+    "type": "BIG_MOVE",
+    "symbol": "AVAV",
+    "message": "Günlük değişim %6.0",
+    "price": 192.0,
+    "sent_telegram": true
+  },
+  {
+    "id": "3d91c2a3",
+    "timestamp": "2026-06-03T18:40:00.229584+03:00",
+    "type": "TARGET_HIT",
+    "symbol": "MRVL",
+    "message": "Fiyat $306.70 ≥ hedef $222.55",
+    "price": 306.7,
+    "sent_telegram": true
+  },
+  {
+    "id": "7093ba06",
+    "timestamp": "2026-06-03T18:40:00.430814+03:00",
+    "type": "BIG_MOVE",
+    "symbol": "MRVL",
+    "message": "Günlük değişim %5.5",
+    "price": 306.7,
+    "sent_telegram": true
+  },
+  {
+    "id": "a31e9bf8",
+    "timestamp": "2026-06-03T18:40:00.689991+03:00",
+    "type": "RSI_OVERBOUGHT",
+    "symbol": "MRVL",
+    "message": "RSI 87 — aşırı alım",
+    "price": 306.7,
+    "sent_telegram": true
+  },
+  {
+    "id": "767bfc6c",
+    "timestamp": "2026-06-03T18:40:00.951910+03:00",
+    "type": "BIG_MOVE",
+    "symbol": "AVAV",
+    "message": "Günlük değişim %5.9",
+    "price": 192.32,
+    "sent_telegram": true
+  },
+  {
+    "id": "8451573a",
+    "timestamp": "2026-06-03T18:45:02.395806+03:00",
+    "type": "TARGET_HIT",
+    "symbol": "MRVL",
+    "message": "Fiyat $303.96 ≥ hedef $222.55",
+    "price": 303.96,
+    "sent_telegram": true
+  },
+  {
+    "id": "2d5f6dfb",
+    "timestamp": "2026-06-03T18:45:02.769072+03:00",
+    "type": "RSI_OVERBOUGHT",
+    "symbol": "MRVL",
+    "message": "RSI 87 — aşırı alım",
+    "price": 303.96,
+    "sent_telegram": true
+  },
+  {
+    "id": "24dbd5f1",
+    "timestamp": "2026-06-03T18:45:03.514895+03:00",
+    "type": "BIG_MOVE",
+    "symbol": "AVAV",
+    "message": "Günlük değişim %5.9",
+    "price": 192.22,
+    "sent_telegram": true
+  }
+]

@@ -49,6 +49,36 @@ def format_price_table(prices: dict[str, dict], symbols: list[str]) -> str:
     return "\n".join(rows)
 
 
+def format_discovery_report(data: dict[str, Any]) -> str:
+    """Telegram keşif raporu."""
+    date = (data.get("generated_at") or "")[:10] or "bugün"
+    lines = [
+        f"🔍 ARGOS Keşif Raporu — {date}",
+        f"{data.get('scanned_count', 0)} hisse tarandı, en iyi {len(data.get('opportunities', []))} fırsat:",
+        "",
+    ]
+    emojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣"]
+    for i, opp in enumerate(data.get("opportunities", [])[:5]):
+        prefix = emojis[i] if i < len(emojis) else f"{i+1}."
+        b = opp.get("breakdown", {})
+        lines.append(
+            f"{prefix} {opp.get('symbol')} ({opp.get('sector', '—')}) — Skor {opp.get('score', 0):.0f}/100"
+        )
+        lines.append(
+            f"📊 Mom {b.get('momentum', 0):.0f} | Vol {b.get('volatility', 0):.0f} | "
+            f"Hacim {b.get('volume', 0):.0f} | Tek {b.get('technical', 0):.0f}"
+        )
+        lines.append(
+            f"🎯 Ufuk: {opp.get('decision_horizon', '2-6 hafta')} | Giriş: {opp.get('entry_zone', '—')}"
+        )
+        thesis = (opp.get("thesis") or "")[:400]
+        lines.append(f"💡 {thesis}")
+        lines.append(f"⚠️ Risk: {opp.get('main_risk', '—')}")
+        lines.append("")
+    lines.append(f"⚠️ {data.get('disclaimer', 'Yatırım tavsiyesi değildir.')}")
+    return "\n".join(lines)
+
+
 def format_signal_summary(signals: dict[str, dict]) -> str:
     """Telegram açılış raporu için sinyal özeti."""
     rows = []

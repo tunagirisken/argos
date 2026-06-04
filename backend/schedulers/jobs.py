@@ -8,9 +8,11 @@ from apscheduler.triggers.cron import CronTrigger
 from backend.services import (
     alert_service,
     claude_service,
+    discovery_service,
     news_service,
     price_service,
     technical_service,
+    trade_alert_service,
 )
 from backend.services.telegram_service import send_message
 from backend.utils import formatters
@@ -55,6 +57,11 @@ async def job_morning_briefing():
         portfolio, prices, signals, news = await _gather_briefing_data()
         text = await claude_service.morning_briefing(portfolio, prices, signals, news)
         await send_message(f"☀️ Sabah Brifing\n\n{text}")
+        try:
+            discovery = await discovery_service.run_discovery(force=False)
+            await send_message(formatters.format_discovery_report(discovery))
+        except Exception as de:
+            logger.exception("Sabah keşif hatası: %s", de)
     except Exception as e:
         logger.exception("Sabah brifing hatası: %s", e)
 
@@ -97,8 +104,9 @@ async def job_closing_report():
 
 
 async def job_alert_checks():
-    """Her 5 dk alarm kontrolü."""
+    """Her 5 dk alarm + trade sinyal kontrolü."""
     await alert_service.run_checks()
+    await trade_alert_service.run_trade_signal_checks()
 
 
 async def job_refresh_technical():

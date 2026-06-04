@@ -26,6 +26,20 @@ async def get_all_prices():
         raise HTTPException(500, detail=str(e))
 
 
+@router.get("/{symbol}/chart")
+async def get_symbol_chart(symbol: str):
+    """Gerçek OHLCV serisi (lightweight-charts)."""
+    try:
+        from backend.services import chart_service
+
+        return await chart_service.get_chart_series(symbol)
+    except ValueError as e:
+        raise HTTPException(404, detail=str(e))
+    except Exception as e:
+        logger.error("Grafik %s: %s", symbol, e)
+        raise HTTPException(502, detail=str(e))
+
+
 @router.get("/{symbol}")
 async def get_symbol_price(symbol: str):
     """Tek sembol fiyatı."""

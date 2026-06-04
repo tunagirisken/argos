@@ -29,10 +29,23 @@ _ensure_npm() {
   exit 1
 }
 
+_free_ports() {
+  echo "→ Eski süreçler temizleniyor (8000, 5173, 5174)…"
+  for port in 8000 5173 5174; do
+    fuser -k "${port}/tcp" 2>/dev/null || true
+  done
+  sleep 1
+}
+
 _wait_backend() {
   for _ in $(seq 1 40); do
-    if curl -sf "http://127.0.0.1:8000/health" >/dev/null 2>&1; then
+    if kill -0 "$BACK_PID" 2>/dev/null && curl -sf "http://127.0.0.1:8000/health" >/dev/null 2>&1; then
       return 0
+    fi
+    if ! kill -0 "$BACK_PID" 2>/dev/null; then
+      echo "HATA: Backend süreci kapandı (port 8000 başka süreçte olabilir)."
+      echo "  Kontrol: ss -tlnp | grep 8000"
+      exit 1
     fi
     sleep 0.25
   done
@@ -60,11 +73,13 @@ if [ "$MODE" = "prod" ]; then
   echo "  Uygulama: http://localhost:8000"
   echo "  API docs: http://localhost:8000/docs"
   echo ""
+  _free_ports
   export ARGOS_SERVE_UI=1
   exec .venv/bin/uvicorn backend.main:app --host 0.0.0.0 --port 8000
 fi
 
 # --- dev: Vite proxy ile birleşik geliştirme ---
+_free_ports
 _ensure_npm
 if [ ! -d "frontend/node_modules" ]; then
   echo "→ frontend npm install…"
@@ -78,6 +93,9 @@ _wait_backend
 
 echo "→ Frontend başlatılıyor (http://localhost:5173)…"
 echo "  API proxy: /api ve /ws → :8000"
+echo "  Giriş: http://localhost:5173/login"
+echo "  (ENOSPC: make prod veya sudo sysctl fs.inotify.max_user_watches=524288)"
 echo ""
 cd frontend
-exec npm run dev -- --host 0.0.0.0
+export CHOKIDAR_USEPOLLING="${CHOKIDAR_USEPOLLING:-true}"
+exec npm run dev -- --host 0.0.0.0 --port 5173 --strictPort

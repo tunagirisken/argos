@@ -11,9 +11,9 @@ export interface TweakState {
 }
 
 export const TWEAK_DEFAULTS: TweakState = {
-  accent: "#7c6cf8",
+  accent: "#2962ff",
   glow: 1,
-  radius: 14,
+  radius: 8,
   density: "regular",
   showSparkline: true,
 };

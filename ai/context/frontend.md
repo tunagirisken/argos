@@ -1,11 +1,13 @@
 # Frontend (Vite + React)
 
-**Kaynak:** `design/` (prototip, commit edilir, bundle'a girmez).
+**Kaynak:** `design/02_design/` (prototip referans; bundle'a girmez).
 
-**Uygulama:** `frontend/src/` — `tokens.css` + `global.css` (design/styles.css birebir). `ThemeProvider` + `ThemeToggle`. Adım 1: `pages/DesignPreview.tsx`.
+**Uygulama:** `frontend/src/` — `tokens.css` + `global.css` + `design-tv.css`. `ThemeProvider` + `ThemeToggle`.
 
-**API:** `VITE_API_URL=http://localhost:8000` — Vite proxy `/api` → backend.
+**API:** Vite proxy `/api` → backend `:8000`. Tüm `/api/*` istekleri JWT Bearer token gerektirir (`authStore`).
 
-**Ekranlar:** dashboard, stock/:ticker, ai, alarms, settings. Setup gate: `GET /api/setup/status`.
+**Ekranlar:** dashboard, stock/:symbol, discovery, ai, alarms, docs, settings. Setup gate: `GET /api/setup/status` (giriş sonrası).
 
-Detay plan: repo kökünde uygulama onayı bekleniyor; `design/CURSOR-PROMPT.md`.
+**Canlı veri:** `portfolioStore` + WebSocket `/ws/prices` (60s market payload) + REST fallback.
+
+Detay: `docs/STABILIZATION-AUDIT.md`, `docs/TESTING.md`.

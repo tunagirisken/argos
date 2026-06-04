@@ -4,9 +4,11 @@ import { usePortfolioStore } from "../../store/portfolioStore";
 
 const NAV = [
   { id: "dashboard", path: "/dashboard", icon: "dashboard", label: "Dashboard" },
+  { id: "discovery", path: "/discovery", icon: "spark", label: "Keşif" },
   { id: "stocks", path: "/stock", icon: "stocks", label: "Hisseler" },
   { id: "ai", path: "/ai", icon: "ai", label: "AI Analiz" },
   { id: "alarms", path: "/alarms", icon: "bell", label: "Alarmlar" },
+  { id: "docs", path: "/docs", icon: "docs", label: "Dokümantasyon" },
   { id: "settings", path: "/settings", icon: "settings", label: "Ayarlar" },
 ];
 
@@ -14,7 +16,10 @@ export function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const wsConnected = usePortfolioStore((s) => s.wsConnected);
+  const stocks = usePortfolioStore((s) => s.stocks);
   const base = location.pathname.split("/")[1] || "dashboard";
+
+  const stocksPath = stocks[0] ? `/stock/${stocks[0].t}` : "/dashboard";
 
   return (
     <aside className="sidebar">
@@ -38,9 +43,7 @@ export function Sidebar() {
               key={n.id}
               type="button"
               className={`nav-item${active ? " active" : ""}`}
-              onClick={() =>
-                navigate(n.id === "stocks" ? "/stock/MRVL" : n.path)
-              }
+              onClick={() => navigate(n.id === "stocks" ? stocksPath : n.path)}
             >
               <Icon name={n.icon} />
               <span className="nav-tooltip">{n.label}</span>
@@ -48,7 +51,7 @@ export function Sidebar() {
           );
         })}
       </nav>
-      <div className="nav-item" style={{ cursor: "default" }} title="Bağlı">
+      <div className="nav-item" style={{ cursor: "default" }} title={wsConnected ? "Canlı bağlı" : "Bağlantı bekleniyor"}>
         <span
           style={{
             position: "relative",
