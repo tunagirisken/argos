@@ -1,0 +1,311 @@
+================================================================================
+ARGOS — Design & Frontend Eksiklik Analizi
+Tarih: 2026-06-05
+Kaynak: design/04_design prototipleri ↔ frontend/src implementasyonu ↔ backend API
+================================================================================
+
+ÖZET
+----
+Design tarafında 10 ana ekran prototipi var; frontend 12 rota çalıştırıyor ancak
+birkaç önemli özellik yalnızca backend'de mevcut (watchlist, derin analiz).
+En büyük boşluk: Takip Listesi (watchlist) — ne design ne frontend var.
+Design ile frontend arasında nav/isimlendirme ve Keşif Motoru uyumsuzlukları var.
+
+
+================================================================================
+A. MEVCUT DESIGN PROTOTİPLERİ (design/04_design/)
+================================================================================
+
+Dosya / Ekran              Durum
+-------------------------  --------------------------------------------------
+landing.jsx                Var — landing + login mock
+setup.jsx + wizard md      Var — kurulum sihirbazı
+dashboard.jsx              Var — özet bar + TV hisse kartları
+stockdetail.jsx            Var — grafik + sağ panel + sinyal skoru
+trade.jsx                  Var — otomatik motor (strateji, feed, equity)
+aianalysis.jsx             Var — ARGOS Brain chat
+alarms.jsx                 Var — alarm listesi + oluşturma
+settings.jsx               Var — entegrasyon, bildirim, scheduler
+docs.jsx                   Var — dokümantasyon ağacı (çoğu placeholder)
+shell.jsx                  Var — sidebar + header
+tweaks-panel.jsx           Var — tema/yoğunluk paneli
+lwc.jsx, data.jsx, icons   Var — yardımcı / mock veri
+
+DESIGN'DA OLMAYAN (frontend veya backend'de var):
+  • Keşif Motoru (discovery) — frontend'de tam sayfa, design yok
+  • Kayıt (register) — frontend'de var, design yok
+  • Takip Listesi (watchlist) — backend API var, design yok
+  • Derin Analiz (5 ajan pipeline) — backend var, design yok
+  • Portföy Tavsiye Merkezi — frontend trade sayfasında var, design trade.jsx'te yok
+  • Yerel env dokümantasyonu — frontend docs'ta var, design docs'ta yok
+
+
+================================================================================
+B. MEVCUT FRONTEND SAYFALARI (frontend/src/features/)
+================================================================================
+
+Rota              Bileşen              Design karşılığı
+----------------  -------------------  ---------------------
+/                 LandingPage          landing.jsx (kısmen)
+/login            LandingPage          landing.jsx
+/register         RegisterPage         YOK
+/setup            SetupWizard          setup.jsx
+/dashboard        DashboardPage        dashboard.jsx
+/stock/:symbol     StockDetailPage      stockdetail.jsx
+/ai               AiAnalysisPage         aianalysis.jsx
+/discovery        DiscoveryPage        YOK
+/trade            TradeEnginePage        trade.jsx (genişletilmiş)
+/alarms           AlarmsPage             alarms.jsx
+/docs             DocsPage               docs.jsx
+/settings         SettingsPage           settings.jsx
+
+Ortak layout: AppLayout + Sidebar + Header + TweaksPanel (design shell + tweaks ile uyumlu)
+
+
+================================================================================
+C. KRİTİK EKSİKLER (öncelik 1 — hem design hem frontend gerekir)
+================================================================================
+
+1. TAKİP LİSTESİ (WATCHLIST) ★ En belirgin boşluk
+   Backend: GET/POST/DELETE /api/watchlist, GET /api/watchlist/signals
+   Design:  Yok (sidebar'da nav yok, sayfa prototipi yok)
+   Frontend: api.ts'te metod yok, rota yok, UI yok
+
+   Önerilen tasarım (Investing.com / TradingView benchmark):
+   • Sidebar'a "Takip Listesi" ikonu (watch / star)
+   • Tablo veya kompakt kart grid: sembol, logo, fiyat, % değişim, sinyal badge
+   • Portföy dışı sembol ekleme (StockSymbolSearch)
+   • Sürükle-bırak sıralama, çoklu liste (ileride)
+   • Hızlı aksiyonlar: detaya git, alarm kur, portföye ekle
+   • /api/watchlist/signals ile hafif teknik skor kolonu (LLM'siz)
+
+2. DERİN ANALİZ SAYFASI / PANELİ (Deep Analysis)
+   Backend: POST /api/analysis/deep/{symbol}, GET .../cached (5 ajan + LLM sentez)
+   Design:  Yok
+   Frontend: Yok (analyzeSymbol API tanımlı ama hiçbir sayfa çağırmıyor)
+
+   Önerilen tasarım:
+   • StockDetail'de "Derin Analiz" sekmesi veya tam sayfa
+   • Ajan kartları: Temel, Makro, Teknik, Haber, Risk — skor + özet
+   • Sentez bölümü (markdown), son güncelleme, yenile butonu
+   • Telegram'a gönder toggle (backend ?telegram=true)
+   • Yükleniyor / önbellek göstergesi
+
+3. KEŞİF MOTORU TASARIMI
+   Backend: POST /api/discovery/scan, GET /api/discovery/latest
+   Frontend: DiscoveryPage tam çalışıyor
+   Design:  Prototip yok; shell.jsx sidebar'da Keşif yok
+
+   Yapılacak: discovery.jsx prototipi + shell nav güncellemesi + tasarım sistemi dokümanı
+
+4. HİSSE LİSTESİ SAYFASI (Stocks / Portfolio Table View)
+   Design shell: "Hisseler" → ilk hisse detayına gider (ayrı liste yok)
+   Frontend: Sidebar "Hisseler" → /stock/{ilkSembol}; bağımsız liste sayfası yok
+
+   Önerilen (Yahoo Finance / Finviz):
+   • Portföy tablo görünümü: ticker, maliyet, güncel, P&L, ağırlık %, sinyal
+   • Sıralama/filtre (getiri, sektör, sinyal)
+   • Tablo ↔ kart görünümü toggle
+   • Dashboard kartları buraya taşınabilir veya dashboard sadeleşir
+
+5. KAYIT (REGISTER) EKRANI TASARIMI
+   Frontend: RegisterPage var
+   Design: landing.jsx yalnızca login; register akışı tasarlanmamış
+
+6. DESIGN ↔ FRONTEND NAV UYUMSUZLUKLUKLARI
+   Konu                    Design (shell.jsx)     Frontend (Sidebar.tsx)
+   ----------------------  --------------------   ---------------------------
+   Keşif Motoru            Yok                    Var (/discovery)
+   Otomatik Motor adı      "İşlem Motoru"         "Otomatik Motor"
+   Trade sayfası içeriği   Eski motor mock        Portföy Tavsiye Merkezi eklendi
+
+   Tasarım sistemi ve shell prototipi frontend ile senkronize edilmeli.
+
+
+================================================================================
+D. ORTA ÖNCELİK EKSİKLER (design iyileştirme veya kısmi UI var)
+================================================================================
+
+7. STOCK DETAIL — "Bu hisseyi analiz et" butonu
+   API: GET /api/analysis/{symbol} — frontend'de buton/panel yok
+   Design stockdetail.jsx'te de açık CTA yok; derin analiz ile birleştirilebilir
+
+8. PORTFÖY HABERLERİ WİDGET'I (Dashboard)
+   API: GET /api/news/portfolio
+   Dashboard'da portföy haber akışı yok (yalnızca hisse detayda haber var)
+   Design: dashboard.jsx'te haber bölümü yok
+   Öneri: Sağ kolon veya alt şerit — başlık, kaynak, göreli zaman (formatNewsAge hazır)
+
+9. RAPOR ARŞİVİ / BRİFİNG GEÇMİŞİ
+   Backend: Scheduler sabah brifingi + kapanış üretiyor (Telegram); REST arşiv yok
+   Design + Frontend: Geçmiş raporları listeleyen sayfa/panel yok
+   Öneri: AI sayfasında "Raporlar" sekmesi veya Docs altında; backend log koleksiyonu gerekir
+
+10. ALARM GELİŞTİRMELERİ
+    • RSI / Hacim alarm tipleri UI'da "Yakında" — backend desteklemiyor
+    • Alarm aktif/pasif toggle: backend Alert.enabled var; frontend PUT yok
+    • "Mevcut fiyat" kolonu canlı portfolioStore ile merge edilmeli (bayat kalabiliyor)
+    • Alarm geçmişi zamanı: ham ISO yerine göreli format
+
+11. DOKÜMANTASYON PLACEHOLDER'LARI
+    frontend docContent.ts + design docs.jsx — 14+ sayfa placeholder:
+    quickstart, portfolio, prices, alarms-feature, discovery, ai-analysis,
+    analysis-endpoints, alerts-endpoints, notification-types, bot-commands,
+    llm-provider, market-hours, token-policy, contributing, deployment
+
+12. GLOBAL SEMBOL ARAMA (Header Cmd+K)
+    StockSymbolSearch kurulum ve pozisyon eklemede var; header'da global arama yok
+    TradingView benchmark: her yerden sembol arama → detay / watchlist'e ekle
+
+13. BİLDİRİM MERKEZİ (In-App Notification Center)
+    Telegram ayarları var; uygulama içi bildirim çanı + geçmiş listesi yok
+    Alarm log API var (/api/alerts/log) — header'da kullanılabilir
+
+14. TRADE SAYFASI — Design güncellemesi
+    Frontend TradeEnginePage: Portföy Tavsiye Merkezi, applyPortfolioAdvice, equity curve (API)
+    Design trade.jsx: hâlâ statik mock strateji/feed
+    trade.jsx ve trade.css design referansı frontend ile hizalanmalı
+
+15. LANDING / AUTH TASARIMI
+    Landing preview artık statik mock (401 sorunu giderildi)
+    Register akışı, şifre gücü, hata durumları için design eksik
+
+16. AI CHAT — Güvenlik ve zenginleştirme
+    AiAnalysisPage: dangerouslySetInnerHTML (DOMPurify yok)
+    Design aianalysis.jsx ile uyumlu; portföy analiz quick action'ları backend'e bağlı ✓
+
+
+================================================================================
+E. DÜŞÜK ÖNCELİK / UX BORCU
+================================================================================
+
+17. Mobil (<760px): mini chart gizleniyor; bottom nav veya hamburger sidebar yok
+18. Toast sistemi yalnızca Settings'te; global toast provider yok
+19. Hisse detay — grafik overlay chip'leri (EMA20/50, BB) design'da var; frontend kontrolü doğrulanmalı
+20. Portföy performans grafiği dashboard'da yok (equity curve yalnızca /trade'de)
+21. Sektör dağılımı / allocation donut — veri kısmen var (sector alanı), görselleştirme yok
+22. Karşılaştırma modu (2 hisse yan yana) — yok
+23. İşlem geçmişi / trade journal — engine trades mock; gerçek işlem defteri UI yok
+24. Tweaks panel: design + frontend uyumlu ✓
+
+
+================================================================================
+F. BACKEND VAR — DESIGN + FRONTEND YOK (tamamen yeni özellik adayları)
+================================================================================
+
+Bu maddeler global fintech / borsa sitelerinde yaygın; ARGOS kişisel bot
+kapsamında değerlendirilebilir. Hepsi için önce design, sonra frontend gerekir.
+
+Kategori              Özellik                              Not
+--------------------  -----------------------------------  --------------------------
+İzleme                Çoklu watchlist listeleri            API tek liste; genişletilebilir
+                      Screener / tarama ekranı           discovery ile örtüşür; Finviz tarzı tablo
+                      Piyasa heatmap                     Sektör/hisse ısı haritası
+                      Endeks / sektör ETF özeti          macro_agent verisi kullanılabilir
+
+Analiz                Hisse karşılaştırma (compare)      Yan yana grafik + metrik
+                      Earnings takvimi                   API yok; yfinance ile eklenebilir
+                      Ekonomik takvim                    API yok
+                      Analist konsensüs grafiği          getAnalystTarget kısmen kullanılıyor
+                      Fear & Greed / VIX göstergesi      macro_agent VIX kullanıyor
+
+Portföy               Varlık dağılımı (allocation)       sector + ağırlık %
+                      Portföy rebalance önerisi          portfolio-advisor genişletmesi
+                      Nakit yönetimi / dry powder        summary.cash var
+                      Vergi lot / maliyet bazı           API yok
+                      İşlem import (CSV broker)          API yok
+                      Dividend takibi                    API yok
+
+Sosyal / Bilgi        Haber sentiment badge              backend yalnız title/url/date
+                      Kaynak filtresi (Reuters, vb.)     domain parse önerilmiş
+                      Portföy günlüğü / activity feed    motor feed + alarm log birleşimi
+
+Bildirim              Push / in-app notification center  alarm log + WS events
+                      Bildirim tercihleri granüler       settings kısmen var
+
+Keşif                 Watchlist'ten tarama               watchlist + screener birleşimi
+                      Favori strateji şablonları         trade engine strategies
+
+
+================================================================================
+G. SAYFA BAZLI DESIGN ↔ FRONTEND KARŞILAŞTIRMA MATRİSİ
+================================================================================
+
+Sayfa           Design   Frontend   Backend   Gap özeti
+--------------  ------   --------   -------   ---------------------------------
+Landing         ✓        ✓          ✓         Register design eksik
+Setup           ✓        ✓          ✓         Uyumlu (StockSymbolSearch eklendi)
+Dashboard       ✓        ✓          ✓         Haber widget, equity chart eksik
+Stock Detail    ✓        ✓          ✓         Deep analysis, tek-tık AI analiz eksik
+AI Chat         ✓        ✓          ✓         Rapor arşivi, DOMPurify eksik
+Discovery       ✗        ✓          ✓         Design prototipi yok
+Trade/Motor     ✓        ✓          ✓         Design eski; tavsiye merkezi design'da yok
+Alarms          ✓        ✓          ✓         Toggle, RSI/hacim, canlı fiyat eksik
+Docs            ✓        ✓          ✓         Placeholder içerikler
+Settings        ✓        ✓          ✓         Uyumlu; global toast eksik
+Watchlist       ✗        ✗          ✓         Tamamen eksik ★
+Register        ✗        ✓          ✓         Design eksik
+Deep Analysis   ✗        ✗          ✓         Tamamen eksik ★
+Stocks Table    ✗        ✗          kısmen    Liste görünümü eksik
+Notification    ✗        ✗          kısmen    In-app merkez eksik
+
+
+================================================================================
+H. ÖNERİLEN DESIGN ÇALIŞMA SIRASI
+================================================================================
+
+Faz 1 — Kritik (ürün bütünlüğü)
+  1. watchlist.jsx + shell nav + tasarım sistemi bölümü
+  2. discovery.jsx (mevcut frontend'i referans al)
+  3. stockdetail.jsx — Derin Analiz sekmesi / drawer
+  4. shell.jsx + ARGOS-tasarim-sistemi.md — nav ve isimlendirme senkronu
+  5. trade.jsx — Portföy Tavsiye Merkezi mock'u
+
+Faz 2 — Orta (deneyim)
+  6. stocks-table.jsx veya dashboard'a tablo görünümü
+  7. dashboard — portföy haber şeridi
+  8. header — global arama + bildirim çanı
+  9. register.jsx
+  10. alarms.jsx — pasif/aktif toggle, desteklenmeyen tipler disabled state
+  11. docs içeriklerini doldur (design + frontend docContent)
+
+Faz 3 — Genişleme (benchmark özellikler)
+  12. screener.jsx / heatmap.jsx
+  13. portfolio-allocation.jsx (sektör donut + liste)
+  14. reports-archive.jsx
+  15. compare-stocks.jsx
+  16. mobil bottom-nav wireframe
+
+
+================================================================================
+I. REFERANS DOSYALAR
+================================================================================
+
+Design prototipler     design/04_design/
+Gap analizi (önceki)   design/04_design/ARGOS-frontend-prompt.md §5
+UX günlüğü             design_improvements.md
+API sözleşmesi         ai/context/api-endpoints.md
+Frontend rotalar       frontend/src/App.tsx, components/layout/Sidebar.tsx
+Backend-only API       backend/api/routes/watchlist.py, analysis deep endpoints
+
+
+================================================================================
+J. HIZLI KONTROL LİSTESİ (design tarafı için)
+================================================================================
+
+[ ] watchlist.jsx oluştur
+[ ] discovery.jsx oluştur
+[ ] register.jsx / landing genişletmesi
+[ ] shell.jsx nav: Keşif + Takip Listesi + isimlendirme
+[ ] stockdetail — deep analysis panel
+[ ] trade.jsx — portfolio advice hub
+[ ] dashboard — haber + opsiyonel equity mini chart
+[ ] stocks list/table view
+[ ] header — Cmd+K arama mock
+[ ] notification bell mock
+[ ] ARGOS-tasarim-sistemi.md güncelle
+[ ] docs.jsx placeholder'ları doldur
+
+================================================================================
+Son güncelleme: otomatik analiz — design çalışması öncesi referans dosyası.
+================================================================================

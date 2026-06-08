@@ -20,7 +20,7 @@ Doldurulacak alanlar:
 | `FIRECRAWL_API_KEY` | https://firecrawl.dev (opsiyonel) |
 | `EXA_API_KEY` | https://exa.ai (opsiyonel) |
 
-Bu dosya **git’e girmez** (`.gitignore`).
+Bu dosya **git’e girmez** (`.gitignore`). Admin girişinde anahtarlar ayrıca `docs/LOCAL-ENV.md` dosyasına kopyalanır; uygulamada **Docs → Yapılandırma (.env)** sayfasından görüntülenir.
 
 ## 2. Admin şifresi (sunucu)
 

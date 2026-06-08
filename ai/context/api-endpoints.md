@@ -46,6 +46,34 @@
 | GET | `/analysis/{symbol}` |
 | GET | `/analysis/trade-signal/{symbol}` |
 | GET | `/analysis/trade-signals/portfolio` |
+| POST | `/analysis/deep/{symbol}` | 5 ajan + LLM sentez (`?telegram=true`, `?refresh=true`) |
+| GET | `/analysis/deep/{symbol}/cached` | Aynı gün önbellek |
+
+## Watchlist
+
+| Method | Path | Notes |
+|--------|------|-------|
+| GET | `/watchlist` | İzleme listesi |
+| POST | `/watchlist` | Sembol ekle |
+| DELETE | `/watchlist/{symbol}` | Sembol sil |
+| GET | `/watchlist/signals` | Hafif teknik/trade skoru (LLM yok) |
+
+## Chat history
+
+| Method | Path |
+|--------|------|
+| GET | `/chats` |
+| POST | `/chats` |
+| GET | `/chats/{session_id}` |
+| POST | `/chats/{session_id}/messages` |
+| DELETE | `/chats/{session_id}` |
+
+## Engine (Otomatik Motor)
+
+| Method | Path | Notes |
+|--------|------|-------|
+| GET | `/engine/portfolio-advice` | Stop/hedef/sinyal öneri özeti |
+| POST | `/engine/portfolio-advice/apply` | Önerileri portföye uygula (`symbols` opsiyonel) |
 
 ## Discovery, news, alerts
 
@@ -80,6 +108,7 @@
 | GET | `/docs/telegram` |
 | GET | `/docs/targets` |
 | GET | `/docs/telegram/markdown` |
+| GET | `/docs/local-env` | Yerel entegrasyon anahtarları (`docs/LOCAL-ENV.md`) |
 | GET | `/health` | (no `/api` prefix) |
 
 ## WebSocket

@@ -5,6 +5,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException
 
 from backend.services.telegram_bot_service import get_command_catalog
+from backend.utils.local_env_doc import read_local_env_doc
 
 router = APIRouter(prefix="/docs", tags=["docs"])
 
@@ -36,3 +37,12 @@ def target_docs():
 @router.get("/telegram/markdown")
 def telegram_markdown():
     return {"markdown": _read_doc("TELEGRAM-COMMANDS.md")}
+
+
+@router.get("/local-env")
+def local_env_docs():
+    """Yerel entegrasyon anahtarları — docs/LOCAL-ENV.md (gitignore)."""
+    md = read_local_env_doc()
+    if not md:
+        raise HTTPException(404, detail="Yerel anahtar dosyası henüz oluşturulmamış")
+    return {"markdown": md}

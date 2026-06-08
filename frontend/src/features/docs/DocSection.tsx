@@ -3,7 +3,7 @@ import { Icon } from "../../components/icons/Icon";
 import type { DocSectionType } from "./docContent";
 import { slugify } from "./docContent";
 
-function DocCode({ content }: { content: string }) {
+export function DocCode({ content }: { content: string }) {
   const [copied, setCopied] = useState(false);
   const copy = () => {
     navigator.clipboard?.writeText(content);

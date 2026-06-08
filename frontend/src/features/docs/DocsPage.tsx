@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "../../components/icons/Icon";
 import { api } from "../../services/api";
 import "../../styles/docs.css";
-import { DocCommandsTable, DocSection } from "./DocSection";
+import { DocCommandsTable, DocCode, DocSection } from "./DocSection";
 import {
   DOC_CAT_OF,
   DOC_CATS,
@@ -25,11 +25,23 @@ export function DocsPage() {
   );
   const [activeH, setActiveH] = useState<string | null>(null);
   const [commands, setCommands] = useState<{ command: string; description: string; example: string }[]>([]);
+  const [localEnv, setLocalEnv] = useState<string | null>(null);
   const contentRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     api.getDocsTelegram().then((d) => setCommands(d.commands));
   }, []);
+
+  useEffect(() => {
+    if (active !== "env-config") {
+      setLocalEnv(null);
+      return;
+    }
+    api
+      .getDocsLocalEnv()
+      .then((d) => setLocalEnv(d.markdown))
+      .catch(() => setLocalEnv(null));
+  }, [active]);
 
   useEffect(() => {
     localStorage.setItem(DOC_STORAGE_KEY, active);
@@ -144,6 +156,7 @@ export function DocsPage() {
             {page.sections.map((s, i) => (
               <DocSection key={i} s={s} />
             ))}
+            {active === "env-config" && localEnv ? <DocCode content={localEnv} /> : null}
           </div>
 
           <div className="docs-pager">

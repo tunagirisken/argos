@@ -55,8 +55,11 @@ _wait_backend() {
 
 _cleanup() {
   if [ -n "${BACK_PID:-}" ]; then
-    kill "$BACK_PID" 2>/dev/null || true
+    kill -TERM "$BACK_PID" 2>/dev/null || true
+    sleep 0.5
+    kill -9 "$BACK_PID" 2>/dev/null || true
   fi
+  fuser -k -KILL 8000/tcp 5173/tcp 5174/tcp 2>/dev/null || true
 }
 trap _cleanup EXIT INT TERM
 

@@ -20,10 +20,15 @@ htmlcov/
 .env.local
 backend/.env
 backend/.env.bootstrap
+docs/LOCAL-ENV.md
 backend/data/.setup_complete
 backend/data/users.json
+backend/data/alerts_log.json
+backend/data/chat_history.json
+backend/data/last_discovery.json
 frontend/node_modules/
 frontend/dist/
+frontend/tsconfig.tsbuildinfo
 *.pem
 
 # Log ve geçici

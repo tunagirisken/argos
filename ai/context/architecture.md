@@ -28,8 +28,11 @@ Services
   auth_service           JWT + users.json
   telegram_*             outbound + command bot
   symbol_search_service  nasdaq_symbols.json
+  agents/fundamental_agent yfinance temel analiz (LLM yok)
+  agents/macro_agent       VIX + sektör ETF + piyasa rejimi (LLM yok)
+  analysis_pipeline        5 ajan paralel + LLM sentez
 
-Persist: utils/json_store.py + backend/data/*.json
+Persist: utils/json_store.py + backend/data/*.json + analysis_cache/
 Logs: backend/logs/argos_YYYY-MM-DD.log
 ```
 
@@ -54,6 +57,8 @@ Stock detail supports **watch mode** for symbols not in portfolio (e.g. from Dis
 | Closing report | Mon–Fri 23:05 |
 | Alert + trade checks | Every 5 min |
 | Technical cache refresh | Hourly |
+
+Sabah brifingine deep analysis eklenmez (ağır) — manuel: `POST /api/analysis/deep/{symbol}`
 
 ## Dosya ekleme rehberi
 

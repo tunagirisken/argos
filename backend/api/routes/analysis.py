@@ -12,6 +12,7 @@ from backend.services import (
     technical_service,
     trade_alert_service,
 )
+from backend.services import analysis_pipeline
 from backend.services.telegram_service import send_message
 from backend.utils.env_config import llm_configured, load_env
 from backend.utils.json_store import read_json
@@ -105,6 +106,43 @@ async def trade_signal(symbol: str):
     except Exception as e:
         logger.error("Trade sinyal %s: %s", symbol, e)
         raise HTTPException(500, detail=str(e))
+
+
+@router.post("/deep/{symbol}")
+async def deep_analysis(symbol: str, telegram: bool = False, refresh: bool = False):
+    """5 ajan derin analiz + LLM sentez. Aynı gün önbellek kullanılır."""
+    load_env()
+    if not llm_configured():
+        raise HTTPException(
+            503,
+            detail="LLM yapılandırılmamış. Setup wizard ile API anahtarlarını girin.",
+        )
+    sym = symbol.upper()
+    try:
+        result = await analysis_pipeline.run_deep_analysis(sym, use_cache=not refresh)
+        if telegram:
+            text = (
+                f"🔬 ARGOS Derin Analiz — {sym}\n"
+                f"Bileşik: {result.get('composite_score')}/100\n\n"
+                f"{result.get('verdict', '')}\n\n"
+                f"{analysis_pipeline.DISCLAIMER}"
+            )
+            sent = await send_message(text)
+            result["telegram_sent"] = sent
+        return result
+    except Exception as e:
+        logger.error("Derin analiz %s: %s", sym, e)
+        raise HTTPException(500, detail=str(e))
+
+
+@router.get("/deep/{symbol}/cached")
+async def deep_analysis_cached(symbol: str):
+    """Güncel gün önbelleğindeki derin analiz."""
+    sym = symbol.upper()
+    cached = analysis_pipeline.read_cached_analysis(sym)
+    if not cached:
+        raise HTTPException(404, detail=f"{sym} için güncel önbellek yok")
+    return cached
 
 
 @router.get("/{symbol}")

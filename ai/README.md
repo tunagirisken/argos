@@ -12,6 +12,8 @@ Token tasarrufu için **modüler, kısa** referans dosyaları. Tümünü birden 
 | Claude / haber / Telegram | `context/token-policy.md` |
 | Bağımlılık / sürüm | `context/stack.md` |
 | Frontend / Vite | `context/frontend.md` |
+| Frontend özelliği | `prompts/frontend-feature.md` |
+| Refactor | `prompts/refactor.md` |
 | Standart görev metni | `prompts/*.md` |
 
 ## Kök talimatlar

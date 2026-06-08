@@ -54,9 +54,12 @@ export interface NewsItem {
   title: string;
   url?: string;
   published_at?: string;
+  fetched_at?: string;
+  source?: string;
+  provider?: string;
   src?: string;
   min?: number;
-  sentiment?: "pos" | "neg" | "neu";
+  sentiment?: "pos" | "neg" | "neu" | string;
 }
 
 export type SignalIndicator = {

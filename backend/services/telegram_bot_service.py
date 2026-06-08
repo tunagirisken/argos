@@ -1,5 +1,6 @@
 """Telegram komut botu — python-telegram-bot polling."""
 
+import asyncio
 import logging
 import os
 from typing import TYPE_CHECKING
@@ -336,7 +337,13 @@ def _build_application() -> "Application | None":
 
     from telegram.ext import Application, CommandHandler
 
-    app = Application.builder().token(token).build()
+    app = (
+        Application.builder()
+        .token(token)
+        .connect_timeout(15.0)
+        .read_timeout(15.0)
+        .build()
+    )
     handlers = [
         ("start", cmd_start),
         ("help", cmd_help),
@@ -358,31 +365,51 @@ def _build_application() -> "Application | None":
 
 
 async def start_bot() -> None:
-    """Polling botunu başlat."""
+    """Polling botunu başlat; Telegram erişilemezse API yine açılır."""
     global _app
     if _app is not None:
+        return
+    load_env()
+    if (os.getenv("TELEGRAM_BOT_ENABLED") or "true").strip().lower() in (
+        "0",
+        "false",
+        "no",
+        "off",
+    ):
+        logger.info("Telegram bot: TELEGRAM_BOT_ENABLED=false, atlandı")
         return
     app = _build_application()
     if not app:
         logger.info("Telegram bot: token yok, komut dinleyici kapalı")
         return
-    await app.initialize()
-    await app.start()
-    await app.updater.start_polling(drop_pending_updates=True)
-    _app = app
-    logger.info("Telegram komut botu polling başladı")
+    try:
+        await app.initialize()
+        await app.start()
+        await app.updater.start_polling(drop_pending_updates=True)
+        _app = app
+        logger.info("Telegram komut botu polling başladı")
+    except Exception as e:
+        logger.warning(
+            "Telegram bot başlatılamadı (%s). Backend çalışmaya devam ediyor; "
+            "komut botu kapalı. Ağ/VPN veya TELEGRAM_BOT_ENABLED=false deneyin.",
+            e,
+        )
+        try:
+            await app.shutdown()
+        except Exception:
+            pass
 
 
 async def stop_bot() -> None:
-    """Botu durdur."""
+    """Botu durdur — uzun polling beklemesini kısalt."""
     global _app
     if _app is None:
         return
     try:
         if _app.updater.running:
-            await _app.updater.stop()
-        await _app.stop()
-        await _app.shutdown()
+            await asyncio.wait_for(_app.updater.stop(), timeout=3.0)
+        await asyncio.wait_for(_app.stop(), timeout=3.0)
+        await asyncio.wait_for(_app.shutdown(), timeout=3.0)
     except Exception as e:
         logger.warning("Telegram bot kapanış: %s", e)
     _app = None

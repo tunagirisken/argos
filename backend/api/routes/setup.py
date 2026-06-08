@@ -8,7 +8,9 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from backend.services import analyst_target_service
+from backend.utils.bootstrap import append_preserved_env_lines, read_preserved_env
 from backend.utils.env_config import load_env, llm_configured
+from backend.utils.local_env_doc import sync_local_env_doc
 from backend.utils.json_store import write_json
 from backend.utils.paths import BACKEND_ROOT, DATA_DIR, PORTFOLIO_FILE
 
@@ -105,8 +107,11 @@ def post_env(body: EnvBody):
             lines.append(f"EXA_API_KEY={body.exa_api_key}")
         if body.sentry_dsn:
             lines.append(f"SENTRY_DSN={body.sentry_dsn}")
+        preserved = read_preserved_env()
+        append_preserved_env_lines(lines, preserved)
         ENV_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
         load_env()
+        sync_local_env_doc()
         return {"ok": True}
     except Exception as e:
         logger.error("Setup env hatası: %s", e)

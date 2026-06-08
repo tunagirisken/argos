@@ -1,4 +1,4 @@
-.PHONY: install install-frontend install-all start stop dev prod run run-frontend build test test-all test-smoke lint clean plugins check-integrations
+.PHONY: install install-frontend install-all start stop dev prod run run-frontend build test test-all test-smoke lint clean plugins check-integrations release release-patch release-minor release-major
 
 VENV := .venv
 PY := $(VENV)/bin/python
@@ -16,7 +16,11 @@ install-frontend:
 install-all: install install-frontend
 
 stop:
-	@fuser -k 8000/tcp 5173/tcp 5174/tcp 2>/dev/null || true
+	@fuser -k -TERM 8000/tcp 5173/tcp 5174/tcp 2>/dev/null || true
+	@sleep 1
+	@fuser -k -KILL 8000/tcp 5173/tcp 5174/tcp 2>/dev/null || true
+	@pkill -9 -f "uvicorn backend.main:app" 2>/dev/null || true
+	@pkill -9 -f "vite.*5173" 2>/dev/null || true
 	@echo "Portlar serbest: 8000, 5173, 5174"
 
 start:
@@ -61,3 +65,18 @@ plugins:
 check-integrations:
 	chmod +x scripts/check-integrations.sh
 	./scripts/check-integrations.sh
+
+# Sürüm yayını: test → bump → commit → tag → push (scripts/release.sh)
+release:
+	chmod +x scripts/release.sh scripts/bump_version.sh
+	./scripts/release.sh patch
+
+release-patch: release
+
+release-minor:
+	chmod +x scripts/release.sh scripts/bump_version.sh
+	./scripts/release.sh minor
+
+release-major:
+	chmod +x scripts/release.sh scripts/bump_version.sh
+	./scripts/release.sh major

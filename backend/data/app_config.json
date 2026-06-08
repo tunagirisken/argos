@@ -1,0 +1,20 @@
+{
+  "llm_provider": "gemini",
+  "notifications": {
+    "price": true,
+    "stop": true,
+    "rsi": true,
+    "daily": true,
+    "news": false
+  },
+  "scheduler": {
+    "morning": "09:00",
+    "close": "23:05",
+    "morning_on": true,
+    "close_on": true
+  },
+  "preferences": {
+    "currency": "USD",
+    "timezone": "Europe/Istanbul"
+  }
+}

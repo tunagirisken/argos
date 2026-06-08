@@ -7,7 +7,7 @@
 - Gemini model: `gemini-2.5-flash`
 - **Çağır:** sabah brifing, kapanış, manuel analysis, ACİL stop-loss, trade AL/SAT bildirimi
 - **Çağırma:** fiyat poll, teknik hesap, klasik alarm (ACİL hariç), 16:30 açılış, trade skor hesabı
-- `max_tokens`: rapor Anthropic 400 / Gemini min 8192 (`GEMINI_MIN_REPORT_TOKENS`, 2.5 thinking payı), portföy 1200/hisse istek → 8192 tavan, chat 600, acil ~150, **trade alert 200**, **keşif thesis 250/hisse (max 5)**
+- `max_tokens`: rapor Anthropic 400 / Gemini min 8192 (`GEMINI_MIN_REPORT_TOKENS`, 2.5 thinking payı), portföy 1200/hisse istek → 8192 tavan, chat 600, acil ~150, **trade alert 200**, **keşif thesis 250/hisse (max 5)**, **deep analysis sentez 600** (tek çağrı; tüm ajan çıktıları özetlenmiş olarak gönderilir)
 - Keşif katman 1–3: LLM yok; katman 4 yalnız top 5; haber yalnız başlık
 - Trade prompt: `ai/prompts/trade-alert-system.md`, `ai/prompts/trade-alert-user.md`
 - System: `COMPACT_SYSTEM` + `formatters.compact_*` — haber sadece başlık

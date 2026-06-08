@@ -1,8 +1,13 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ArgosCube } from "../../components/brand/ArgosCube";
+import { StockLogo } from "../../components/stocks/StockLogo";
+import { StockSymbolSearch } from "../../components/stocks/StockSymbolSearch";
 import { Icon } from "../../components/icons/Icon";
 import { fmtUSD } from "../../lib/format";
 import { api } from "../../services/api";
 import { ThemeToggle } from "../../components/ui/ThemeToggle";
+import { useAuthStore } from "../../store/authStore";
 
 const V = {
   anthropic: (v: string) => /^sk-ant-[\w-]{6,}/.test(v.trim()),
@@ -87,8 +92,6 @@ function SecretField({
   );
 }
 
-const DOT = ["#1789e0", "#76b900", "#e31937", "#11b569", "#7c6cf8", "#ffb547"];
-
 interface PositionRow {
   id: number;
   symbol: string;
@@ -97,15 +100,9 @@ interface PositionRow {
   enter?: boolean;
 }
 
-interface PendingRow {
-  id: number;
-  symbol: string;
-  side: "AL" | "SAT";
-  price: number;
-  shares: number;
-}
-
 export function SetupWizard({ onComplete }: { onComplete: () => void }) {
+  const navigate = useNavigate();
+  const logout = useAuthStore((s) => s.logout);
   const [step, setStep] = useState(1);
   const [dir, setDir] = useState("right");
   const [busy, setBusy] = useState(false);
@@ -113,16 +110,10 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
   const [env, setEnv] = useState<Record<string, string>>({});
   const [cash, setCash] = useState("");
   const [positions, setPositions] = useState<PositionRow[]>([]);
-  const [pending, setPending] = useState<PendingRow[]>([]);
   const [sym, setSym] = useState("");
   const [shares, setShares] = useState("");
   const [cost, setCost] = useState("");
   const [editId, setEditId] = useState<number | null>(null);
-  const [showPending, setShowPending] = useState(false);
-  const [pSym, setPSym] = useState("");
-  const [pSide, setPSide] = useState<"AL" | "SAT">("AL");
-  const [pPrice, setPPrice] = useState("");
-  const [pShares, setPShares] = useState("");
 
   const llmField = LLM_FIELDS.find((f) => f.provider === llmProvider)!;
   const llmOk = V[llmField.key](env[llmField.key] || "");
@@ -153,17 +144,6 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
     setEditId(p.id);
   };
 
-  const addPending = () => {
-    if (!pSym.trim() || !+pPrice || !+pShares) return;
-    setPending((p) => [
-      ...p,
-      { id: Date.now(), symbol: pSym.trim().toUpperCase(), side: pSide, price: +pPrice, shares: +pShares },
-    ]);
-    setPSym("");
-    setPPrice("");
-    setPShares("");
-  };
-
   const next = async () => {
     setBusy(true);
     try {
@@ -178,12 +158,6 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
             symbol,
             shares: sh,
             avg_cost,
-          })),
-          pending_orders: pending.map(({ symbol, side, price, shares: sh }) => ({
-            symbol,
-            side,
-            price,
-            shares: sh,
           })),
         });
         setDir("right");
@@ -201,17 +175,22 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
   const nextDisabled = busy || (step === 1 && !step1Ok) || (step === 2 && !portfolioOk);
   const nextLabel = step === 1 ? "İleri →" : step === 2 ? "Kaydet ve Devam →" : "Dashboard'a Git →";
 
+  const goHome = () => {
+    logout();
+    navigate("/", { replace: true });
+  };
+
   return (
     <div className="setup">
       <div className="setup__theme">
         <ThemeToggle />
       </div>
-      <div className="setup__brand">
+      <button type="button" className="setup__brand" onClick={goHome} aria-label="Ana sayfaya dön">
         <span className="mark">
-          <Icon name="eye" size={22} />
+          <ArgosCube size={18} />
         </span>
         <span className="word">ARGOS</span>
-      </div>
+      </button>
       <div className="setup__card">
         <div className="setup__progress">
           {labels.map((l, i) => (
@@ -229,10 +208,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
           <div className={`step-enter-${dir}`}>
             <div className="setup__head">
               <h2>
-                <span style={{ color: "var(--t-accent)" }}>
-                  <Icon name="eye" size={24} />
-                </span>{" "}
-                ARGOS'u Yapılandır
+                <ArgosCube size={20} /> ARGOS'u Yapılandır
               </h2>
               <p>
                 Servislere bağlanmak için API anahtarlarınızı girin. Anahtarlar yalnızca yerel{" "}
@@ -288,16 +264,8 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
               <div className="field__top">
                 <label>{editId ? "Pozisyonu Düzenle" : "Hisse Ekle"}</label>
               </div>
-              <div className="setup-stock-row">
-                <div className="field__wrap" style={{ padding: "0 10px" }}>
-                  <input
-                    placeholder="Sembol"
-                    value={sym}
-                    style={{ textTransform: "uppercase" }}
-                    onChange={(e) => setSym(e.target.value.toUpperCase())}
-                    onKeyDown={(e) => e.key === "Enter" && addOrSave()}
-                  />
-                </div>
+              <div className="setup-stock-row setup-stock-row--search">
+                <StockSymbolSearch value={sym} onChange={setSym} placeholder="NVDA, Apple…" />
                 <div className="field__wrap" style={{ padding: "0 10px" }}>
                   <input
                     type="number"
@@ -348,9 +316,9 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
                   Yukarıdaki formu kullanarak ilk pozisyonunuzu ekleyin.
                 </div>
               ) : (
-                positions.map((p, i) => (
+                positions.map((p) => (
                   <div key={p.id} className={`pos-row${p.enter ? " enter" : ""}`}>
-                    <span style={{ width: 10, height: 10, borderRadius: 3, background: DOT[i % DOT.length], flexShrink: 0 }} />
+                    <StockLogo symbol={p.symbol} size={28} />
                     <span className="mono" style={{ fontWeight: 700, minWidth: 56 }}>
                       {p.symbol}
                     </span>
@@ -381,82 +349,6 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
                 ))
               )}
             </div>
-
-            <div style={{ marginTop: 18, borderTop: "1px solid var(--border-subtle)", paddingTop: 16 }}>
-              <button
-                type="button"
-                className="btn btn--ghost"
-                onClick={() => setShowPending((s) => !s)}
-                style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", justifyContent: "space-between" }}
-              >
-                <span>
-                  Bekleyen Emirler <span className="faint">(opsiyonel)</span>
-                  {pending.length ? ` · ${pending.length}` : ""}
-                </span>
-                <span style={{ transform: showPending ? "rotate(180deg)" : "none", transition: "transform 0.2s", display: "grid" }}>
-                  <Icon name="chevron-down" size={16} />
-                </span>
-              </button>
-              {showPending ? (
-                <div className="step-enter-right" style={{ marginTop: 12 }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr 0.9fr auto", gap: 8, alignItems: "stretch" }}>
-                    <div className="field__wrap" style={{ padding: "0 10px" }}>
-                      <input placeholder="Sembol" value={pSym} style={{ textTransform: "uppercase" }} onChange={(e) => setPSym(e.target.value.toUpperCase())} />
-                    </div>
-                    <div style={{ display: "flex", border: "1px solid var(--border-default)", borderRadius: "var(--radius-md)", overflow: "hidden" }}>
-                      {(["AL", "SAT"] as const).map((s) => (
-                        <button
-                          key={s}
-                          type="button"
-                          onClick={() => setPSide(s)}
-                          className="mono"
-                          style={{
-                            border: "none",
-                            cursor: "pointer",
-                            padding: "0 12px",
-                            fontSize: 12,
-                            fontWeight: 700,
-                            background: pSide === s ? (s === "AL" ? "var(--positive-dim)" : "var(--negative-dim)") : "transparent",
-                            color: pSide === s ? (s === "AL" ? "var(--positive)" : "var(--negative)") : "var(--text-muted)",
-                          }}
-                        >
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="field__wrap" style={{ padding: "0 10px" }}>
-                      <span className="faint mono">$</span>
-                      <input type="number" placeholder="Fiyat" value={pPrice} onChange={(e) => setPPrice(e.target.value)} />
-                    </div>
-                    <div className="field__wrap" style={{ padding: "0 10px" }}>
-                      <input type="number" placeholder="Adet" value={pShares} onChange={(e) => setPShares(e.target.value)} />
-                    </div>
-                    <button type="button" className="btn btn--ghost" onClick={addPending}>
-                      + Ekle
-                    </button>
-                  </div>
-                  {pending.map((o) => (
-                    <div key={o.id} className="pos-row enter" style={{ marginTop: 8 }}>
-                      <span className={`badge ${o.side === "AL" ? "badge--buy" : "badge--sell"}`}>{o.side}</span>
-                      <span className="mono" style={{ fontWeight: 700 }}>
-                        {o.symbol}
-                      </span>
-                      <span className="muted" style={{ fontSize: 13 }}>
-                        {o.shares} @ {fmtUSD(o.price)}
-                      </span>
-                      <button
-                        type="button"
-                        className="btn btn--ghost"
-                        style={{ marginLeft: "auto", padding: 7, lineHeight: 0 }}
-                        onClick={() => setPending((p) => p.filter((x) => x.id !== o.id))}
-                      >
-                        <Icon name="trash" size={14} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-            </div>
           </div>
         )}
 
@@ -475,7 +367,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
             </div>
             <div className="summary-card glow-accent">
               <div className="big-mark">
-                <Icon name="eye" size={28} />
+                <ArgosCube size={24} />
               </div>
               <div style={{ fontWeight: 700, letterSpacing: "0.14em", marginBottom: 14 }}>ARGOS</div>
               {[

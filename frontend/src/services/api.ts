@@ -44,6 +44,96 @@ export type DiscoveryReport = {
   disclaimer: string;
 };
 
+export type EngineStrategy = {
+  id: string;
+  name: string;
+  desc: string;
+  active: boolean;
+  win_rate: number;
+  trades: number;
+};
+
+export type EngineTrade = {
+  symbol: string;
+  side: string;
+  qty: number;
+  entry: number;
+  current: number;
+  pnl_pct: number;
+  status: string;
+  strategy: string;
+};
+
+export type EngineFeedItem = {
+  time: string;
+  symbol: string;
+  message: string;
+  tone: string;
+};
+
+export type PortfolioAdviceItem = {
+  symbol: string;
+  name?: string;
+  shares?: number;
+  avg_cost?: number;
+  price?: number;
+  change_pct?: number;
+  pnl_pct?: number;
+  current_stop?: number | null;
+  current_target?: number | null;
+  suggested_stop?: number;
+  suggested_target?: number;
+  stop_reason?: string;
+  target_reason?: string;
+  stop_needs_update?: boolean;
+  target_needs_update?: boolean;
+  trade_decision?: string;
+  trade_score?: number;
+  trade_confidence?: string;
+  technical_signal?: string;
+  news_count?: number;
+  notes?: string[];
+  priority?: string;
+  error?: string;
+};
+
+export type PortfolioAdvice = {
+  generated_at: string;
+  position_count: number;
+  needs_action: number;
+  high_priority: number;
+  positions: PortfolioAdviceItem[];
+};
+
+export type EngineStatus = {
+  running: boolean;
+  mode: string;
+  active_strategies: number;
+  metrics: {
+    total_return_pct: number;
+    win_rate: number;
+    open_positions: number;
+    max_positions: number;
+    risk_per_trade: number;
+    sharpe: number;
+    wins: number;
+    trade_count: number;
+  };
+};
+
+export type AppConfig = {
+  llm_provider: string;
+  notifications: Record<string, boolean>;
+  scheduler: {
+    morning: string;
+    close: string;
+    morning_on: boolean;
+    close_on: boolean;
+  };
+  preferences: { currency: string; timezone: string };
+  integrations?: Record<string, boolean>;
+};
+
 export type AnalystTarget = {
   symbol: string;
   source: string;
@@ -56,6 +146,22 @@ export type AnalystTarget = {
   recommended_target?: number;
   confidence: string;
   web?: { source: string; target_mean: number; samples: number; urls?: string[] };
+};
+
+export type ChatSession = {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  message_count: number;
+  last_message_preview: string;
+};
+
+export type ChatMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  created_at: string;
 };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -217,9 +323,17 @@ export const api = {
     request<{ signals: TradeSignal[]; count: number }>("/api/analysis/trade-signals/portfolio"),
 
   getNews: (symbol: string) =>
-    request<{ title: string; url: string; published_at: string }[]>(
-      `/api/news/${symbol}`
-    ),
+    request<
+      {
+        title: string;
+        url: string;
+        published_at: string;
+        fetched_at?: string;
+        source?: string;
+        provider?: string;
+        sentiment?: string;
+      }[]
+    >(`/api/news/${symbol}`),
 
   getAlerts: () => request<Record<string, unknown>[]>("/api/alerts"),
 
@@ -237,6 +351,30 @@ export const api = {
       body: JSON.stringify({ message }),
     }),
 
+  listChats: () => request<{ sessions: ChatSession[] }>("/api/chats"),
+
+  createChat: (title?: string) =>
+    request<{ id: string; title: string; created_at: string; updated_at: string }>("/api/chats", {
+      method: "POST",
+      body: JSON.stringify({ title }),
+    }),
+
+  getChat: (id: string) =>
+    request<{ id: string; title: string; created_at: string; updated_at: string; messages: ChatMessage[] }>(
+      `/api/chats/${encodeURIComponent(id)}`
+    ),
+
+  addChatMessage: (id: string, role: "user" | "assistant", content: string) =>
+    request<ChatMessage>(`/api/chats/${encodeURIComponent(id)}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ role, content }),
+    }),
+
+  deleteChat: (id: string) =>
+    request<{ ok: boolean }>(`/api/chats/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    }),
+
   updatePosition: (symbol: string, body: Record<string, unknown>) =>
     request<{ ok: boolean }>(`/api/portfolio/position/${symbol}`, {
       method: "PUT",
@@ -249,6 +387,8 @@ export const api = {
     ),
 
   getDocsTargets: () => request<{ markdown: string }>("/api/docs/targets"),
+
+  getDocsLocalEnv: () => request<{ markdown: string }>("/api/docs/local-env"),
 
   getAnalystTarget: (symbol: string) =>
     request<AnalystTarget>(`/api/portfolio/targets/${symbol}`),
@@ -289,4 +429,58 @@ export const api = {
         send_telegram: opts?.sendTelegram ?? false,
       }),
     }),
+
+  getEngineStatus: () => request<EngineStatus>("/api/engine/status"),
+
+  toggleEngine: () => request<{ running: boolean }>("/api/engine/toggle", { method: "POST" }),
+
+  updateEngineConfig: (body: {
+    mode?: string;
+    risk_per_trade?: number;
+    max_positions?: number;
+    auto_telegram?: boolean;
+  }) => request<{ ok: boolean }>("/api/engine/config", { method: "PUT", body: JSON.stringify(body) }),
+
+  getEngineStrategies: () => request<{ strategies: EngineStrategy[] }>("/api/engine/strategies"),
+
+  setEngineStrategy: (id: string, active: boolean) =>
+    request<{ ok: boolean }>(`/api/engine/strategy/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({ active }),
+    }),
+
+  getEngineTrades: () => request<{ trades: EngineTrade[] }>("/api/engine/trades"),
+
+  getEngineEquity: (days = 90) =>
+    request<{ equity: { time: string; value: number }[] }>(`/api/engine/equity?days=${days}`),
+
+  getEngineFeed: () => request<{ feed: EngineFeedItem[] }>("/api/engine/feed"),
+
+  getPortfolioAdvice: () => request<PortfolioAdvice>("/api/engine/portfolio-advice"),
+
+  applyPortfolioAdvice: (symbols?: string[]) =>
+    request<{ ok: boolean; applied: Record<string, unknown>[] }>("/api/engine/portfolio-advice/apply", {
+      method: "POST",
+      body: JSON.stringify(symbols ? { symbols } : {}),
+    }),
+
+  getAppConfig: () => request<AppConfig>("/api/config"),
+
+  setLlmProvider: (provider: string) =>
+    request<{ ok: boolean }>("/api/config/llm", { method: "PUT", body: JSON.stringify({ provider }) }),
+
+  setNotifications: (body: Record<string, boolean>) =>
+    request<{ ok: boolean }>("/api/config/notifications", { method: "PUT", body: JSON.stringify(body) }),
+
+  setScheduler: (body: Record<string, string | boolean>) =>
+    request<{ ok: boolean }>("/api/config/scheduler", { method: "PUT", body: JSON.stringify(body) }),
+
+  setPreferences: (body: Record<string, string>) =>
+    request<{ ok: boolean }>("/api/config/preferences", { method: "PUT", body: JSON.stringify(body) }),
+
+  testIntegration: (service: string) =>
+    request<{ ok: boolean; message: string }>(`/api/config/integrations/test/${service}`, { method: "POST" }),
+
+  refreshSymbols: () =>
+    request<{ ok: boolean; count?: number }>("/api/symbols/refresh", { method: "POST" }),
 };

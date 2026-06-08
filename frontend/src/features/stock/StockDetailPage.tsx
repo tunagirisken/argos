@@ -3,14 +3,15 @@ import { useNavigate, useParams } from "react-router-dom";
 import { TVChart } from "../../components/charts/TVChart";
 import { ScoreDial } from "../../components/charts/RsiMini";
 import { Icon } from "../../components/icons/Icon";
-import { fmtPct, fmtUSD } from "../../lib/format";
+import { useMinuteTick } from "../../hooks/useMinuteTick";
+import { fmtPct, fmtUSD, formatNewsAge } from "../../lib/format";
 import { buildWatchStockFromMarket } from "../../lib/stockFromMarket";
 import { ratingLabel, type LwSeries } from "../../lib/lwc";
 import type { Time } from "lightweight-charts";
 import { api, type AnalystTarget } from "../../services/api";
 import { usePortfolioStore } from "../../store/portfolioStore";
 import { useTheme } from "../../theme/ThemeContext";
-import type { SignalIndicator } from "../../types";
+import type { NewsItem, SignalIndicator } from "../../types";
 import { TradeSignalCard } from "../../components/trade/TradeSignalCard";
 
 const TIME_RANGES = ["1G", "5G", "1A", "3A", "6A", "1Y"];
@@ -108,7 +109,9 @@ export function StockDetailPage() {
   const [watchLoading, setWatchLoading] = useState(false);
   const s = portfolioStock ?? watchStock ?? null;
   const isWatchMode = !portfolioStock && !!watchStock;
-  const tradeSignal = tradeSignals.find((x) => x.symbol === sym) ?? null;
+  const [localTradeSignal, setLocalTradeSignal] = useState<import("../../types").TradeSignal | null>(null);
+  const tradeSignal =
+    tradeSignals.find((x) => x.symbol === sym) ?? localTradeSignal;
 
   const [range, setRange] = useState("3A");
   const [mode, setMode] = useState<"candle" | "line">("candle");
@@ -119,13 +122,14 @@ export function StockDetailPage() {
   const [saved, setSaved] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [news, setNews] = useState<{ title: string; url?: string; published_at?: string; source?: string; sentiment?: string }[]>([]);
+  const [news, setNews] = useState<NewsItem[]>([]);
   const [chartLw, setChartLw] = useState<LwSeries | null>(null);
   const [chartLoading, setChartLoading] = useState(true);
   const [analyst, setAnalyst] = useState<AnalystTarget | null>(null);
   const [analystLoading, setAnalystLoading] = useState(true);
   const [syncingTarget, setSyncingTarget] = useState(false);
   const [tradeRefreshing, setTradeRefreshing] = useState(false);
+  const newsTick = useMinuteTick();
 
   useEffect(() => {
     if (!sym || portfolioStock) {
@@ -210,10 +214,21 @@ export function StockDetailPage() {
       .finally(() => setAnalystLoading(false));
   }, [sym]);
 
+  useEffect(() => {
+    if (!sym) return;
+    if (portfolioStock) return;
+    api
+      .getTradeSignal(sym)
+      .then(setLocalTradeSignal)
+      .catch(() => setLocalTradeSignal(null));
+  }, [sym, portfolioStock]);
+
   const refreshTrade = async () => {
     setTradeRefreshing(true);
     try {
-      await refreshMarket();
+      const sig = await api.getTradeSignal(sym);
+      setLocalTradeSignal(sig);
+      if (portfolioStock) await refreshMarket();
     } finally {
       setTradeRefreshing(false);
     }
@@ -250,13 +265,6 @@ export function StockDetailPage() {
     pos: "var(--positive)",
     neg: "var(--negative)",
     neu: "var(--text-muted)",
-  };
-
-  const formatNewsAge = (published?: string) => {
-    if (!published) return "—";
-    const diff = Date.now() - new Date(published).getTime();
-    const min = Math.max(1, Math.round(diff / 60000));
-    return min < 60 ? `${min} dk önce` : `${Math.round(min / 60)} sa önce`;
   };
 
   const ovBtn = (k: keyof typeof overlays, label: string, color: string) => (
@@ -610,22 +618,29 @@ export function StockDetailPage() {
             <div className="panel__body" style={{ paddingTop: 4, paddingBottom: 6 }}>
               {news.length === 0 ? (
                 <p className="muted" style={{ fontSize: 12 }}>
-                  Haber yok veya API anahtarı eksik.
+                  Haber bulunamadı. Birkaç dakika sonra yenileyin.
                 </p>
               ) : (
                 news.slice(0, 5).map((n, i) => (
-                  <div key={i} className="news-row">
+                  <a
+                    key={`${n.url || i}`}
+                    className="news-row"
+                    href={n.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ textDecoration: "none", color: "inherit" }}
+                  >
                     <span
                       className="news-row__dot"
                       style={{ background: sentColor[n.sentiment || "neu"] || sentColor.neu }}
                     />
-                    <div>
+                    <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: 12.5, lineHeight: 1.45 }}>{n.title}</div>
                       <div className="faint" style={{ fontSize: 10.5, marginTop: 3 }}>
-                        {(n.source || "Kaynak")} · {formatNewsAge(n.published_at)}
+                        {(n.source || n.provider || "Kaynak")} · {formatNewsAge(n.published_at || n.fetched_at, newsTick)}
                       </div>
                     </div>
-                  </div>
+                  </a>
                 ))
               )}
             </div>

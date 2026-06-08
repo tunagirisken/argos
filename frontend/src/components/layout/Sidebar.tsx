@@ -1,12 +1,14 @@
 import { useNavigate, useLocation } from "react-router-dom";
+import { ArgosCube } from "../brand/ArgosCube";
 import { Icon } from "../icons/Icon";
 import { usePortfolioStore } from "../../store/portfolioStore";
 
 const NAV = [
   { id: "dashboard", path: "/dashboard", icon: "dashboard", label: "Dashboard" },
-  { id: "discovery", path: "/discovery", icon: "spark", label: "Keşif" },
   { id: "stocks", path: "/stock", icon: "stocks", label: "Hisseler" },
   { id: "ai", path: "/ai", icon: "ai", label: "AI Analiz" },
+  { id: "discovery", path: "/discovery", icon: "target", label: "Keşif Motoru" },
+  { id: "trade", path: "/trade", icon: "spark", label: "Otomatik Motor" },
   { id: "alarms", path: "/alarms", icon: "bell", label: "Alarmlar" },
   { id: "docs", path: "/docs", icon: "docs", label: "Dokümantasyon" },
   { id: "settings", path: "/settings", icon: "settings", label: "Ayarlar" },
@@ -30,14 +32,11 @@ export function Sidebar() {
         role="button"
         tabIndex={0}
       >
-        <span style={{ color: "var(--t-accent)" }}>
-          <Icon name="eye" size={24} />
-        </span>
+        <ArgosCube size={20} />
       </div>
       <nav className="sidebar__nav">
         {NAV.map((n) => {
-          const active =
-            base === n.id || (base === "stock" && n.id === "stocks");
+          const active = base === n.id || (base === "stock" && n.id === "stocks");
           return (
             <button
               key={n.id}

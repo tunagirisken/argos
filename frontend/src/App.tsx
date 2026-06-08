@@ -10,6 +10,7 @@ import { AiAnalysisPage } from "./features/ai/AiAnalysisPage";
 import { AlarmsPage } from "./features/alarms/AlarmsPage";
 import { DashboardPage } from "./features/dashboard/DashboardPage";
 import { DiscoveryPage } from "./features/discovery/DiscoveryPage";
+import { TradeEnginePage } from "./features/trade/TradeEnginePage";
 import { DocsPage } from "./features/docs/DocsPage";
 import { SettingsPage } from "./features/settings/SettingsPage";
 import { SetupWizard } from "./features/setup/SetupWizard";
@@ -113,6 +114,7 @@ function AppRoutes() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/stock/:symbol" element={<StockDetailPage />} />
         <Route path="/discovery" element={<DiscoveryPage />} />
+        <Route path="/trade" element={<TradeEnginePage />} />
         <Route path="/ai" element={<AiAnalysisPage />} />
         <Route path="/alarms" element={<AlarmsPage />} />
         <Route path="/docs" element={<DocsPage />} />

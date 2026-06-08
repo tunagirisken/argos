@@ -288,11 +288,54 @@ export const DOC_PAGES: Record<DocPageId, DocPage> = {
     "İlk 5 dakikada ARGOS",
     "Kurulumdan sonra ilk portföyünü ekle, dashboard'u aç ve ilk sinyalini al."
   ),
-  "env-config": placeholder(
-    "Yapılandırma (.env)",
-    "Ortam değişkenleri referansı",
-    "ANTHROPIC_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID zorunlu; FIRECRAWL_API_KEY, EXA_API_KEY, SENTRY_DSN opsiyoneldir."
-  ),
+  "env-config": P("Yapılandırma (.env)", "Ortam değişkenleri referansı ve yerel anahtar yedeği", [
+    {
+      type: "text",
+      content:
+        "ARGOS, API anahtarlarını backend/.env dosyasında tutar. Admin girişinde backend/.env.bootstrap otomatik kopyalanır; normal üyeler kurulum sihirbazı veya Ayarlar üzerinden yapılandırır.",
+    },
+    {
+      type: "callout",
+      variant: "warning",
+      title: "Güvenlik",
+      content:
+        "Anahtarları repoya commit etmeyin. Yerel yedeğiniz docs/LOCAL-ENV.md dosyasındadır (gitignore). Aşağıda aktif anahtarlarınız listelenir.",
+    },
+    { type: "heading", content: "Zorunlu değişkenler" },
+    {
+      type: "table",
+      columns: ["Değişken", "Açıklama", "Kaynak"],
+      rows: [
+        ["LLM_PROVIDER", "gemini veya anthropic", "Seçilen AI sağlayıcı"],
+        ["GEMINI_API_KEY", "Google Gemini API", "aistudio.google.com/apikey"],
+        ["ANTHROPIC_API_KEY", "Claude API (anthropic seçiliyse)", "console.anthropic.com"],
+        ["TELEGRAM_BOT_TOKEN", "Bot token", "@BotFather → /newbot"],
+        ["TELEGRAM_CHAT_ID", "Bildirim chat ID", "@userinfobot veya getUpdates"],
+      ],
+    },
+    { type: "heading", content: "Opsiyonel değişkenler" },
+    {
+      type: "table",
+      columns: ["Değişken", "Açıklama"],
+      rows: [
+        ["FIRECRAWL_API_KEY", "Haber tarama (Firecrawl)"],
+        ["EXA_API_KEY", "Semantik arama (Exa)"],
+        ["SENTRY_DSN", "Hata izleme (Sentry)"],
+      ],
+    },
+    { type: "heading", content: "Admin bootstrap" },
+    {
+      type: "code",
+      content:
+        "cp backend/.env.bootstrap.example backend/.env.bootstrap\n# Anahtarları yazın — admin girişinde backend/.env'e kopyalanır",
+    },
+    { type: "heading", content: "Yerel anahtarlarınız" },
+    {
+      type: "text",
+      content:
+        "Admin girişi veya kurulum sihirbazı sonrası entegrasyon anahtarları otomatik olarak docs/LOCAL-ENV.md dosyasına kaydedilir ve bu sayfada gösterilir.",
+    },
+  ]),
   portfolio: placeholder(
     "Portföy Yönetimi",
     "Pozisyon ekleme, düzenleme, takip",

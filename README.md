@@ -35,6 +35,8 @@ make start
 | `make test-all` | pytest + frontend build |
 | `make test` | Backend pytest only |
 | `make test-smoke` | Playwright dashboard smoke (`SMOKE_PASS` gerekli) |
+| `make release` | Test + patch bump + commit + tag + push |
+| `make release-minor` | Test + minor bump + commit + tag + push |
 
 - Geliştirme UI: http://localhost:5173
 - Prod: http://localhost:8000
@@ -77,6 +79,18 @@ Tüm `/api/*` endpoint'leri (auth login/register hariç) **JWT Bearer token** ge
 ```
 
 Ayrıntı: [docs/CURSOR-PLUGINS.md](docs/CURSOR-PLUGINS.md)
+
+## Sürüm yayını
+
+```bash
+make release          # patch: 1.0.0 → 1.0.1
+make release-minor    # minor: 1.0.0 → 1.1.0
+./scripts/release.sh minor "Özellik özeti"
+```
+
+Cursor: sohbette `/release` komutu veya "argos-release skill ile yayınla".
+
+Sürüm dosyaları: `VERSION`, `backend/main.py`, `frontend/package.json`.
 
 ## Lisans
 

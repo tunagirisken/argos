@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { ArgosCube } from "../../components/brand/ArgosCube";
 import { Icon } from "../../components/icons/Icon";
 import { ThemeToggle } from "../../components/ui/ThemeToggle";
 import { api } from "../../services/api";
@@ -34,9 +35,7 @@ export function RegisterPage() {
     <div className="lp">
       <nav className="lp-nav">
         <Link to="/" className="lp-nav__brand" style={{ textDecoration: "none", color: "inherit" }}>
-          <span className="lp-mark">
-            <Icon name="eye" size={20} />
-          </span>
+          <ArgosCube size={24} />
           <span className="lp-word">ARGOS</span>
         </Link>
         <div className="lp-nav__right" style={{ marginLeft: "auto" }}>

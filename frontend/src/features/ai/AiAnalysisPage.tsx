@@ -1,57 +1,62 @@
 import { useEffect, useRef, useState } from "react";
-import { TradeSignalCard } from "../../components/trade/TradeSignalCard";
 import { Icon } from "../../components/icons/Icon";
-import { fmtPct } from "../../lib/format";
-import { api } from "../../services/api";
+import { fmtPct, fmtUSD } from "../../lib/format";
+import { api, type ChatSession } from "../../services/api";
 import { usePortfolioStore } from "../../store/portfolioStore";
 
 const QUICK = [
   "Portföyümü analiz et",
-  "Pozisyonlarım için ne yapmalıyım?",
-  "Bu hafta riskler neler?",
-  "Stop-loss seviyelerimi gözden geçir",
+  "Risk değerlendirmesi yap",
+  "En güçlü pozisyonum hangisi?",
+  "Zayıf pozisyonlarımı göster",
+  "Nakit stratejisi öner",
+  "Stop-loss seviyelerimi kontrol et",
 ];
 
-const ALERT_KIND: Record<string, string> = {
-  STOP_LOSS_URGENT: "Acil Stop-Loss",
-  STOP_LOSS_WARN: "Stop Uyarısı",
-  TARGET_HIT: "Hedef Vuruldu",
-  BIG_MOVE: "Büyük Hareket",
-  RSI_OVERBOUGHT: "RSI Aşırı Alım",
-  RSI_OVERSOLD: "RSI Aşırı Satım",
-  CUSTOM: "Alarm",
-  TRADE_SIGNAL: "Trade Sinyali",
-};
-
-type ReportRow = {
-  id: string;
-  kind: string;
-  date: string;
-  summary: string;
-  tone: "pos" | "neg" | "warn" | "neu";
-};
-
-function toneForAlert(type: string): ReportRow["tone"] {
-  if (type.includes("TARGET") || type.includes("OVERSOLD")) return "pos";
-  if (type.includes("STOP") || type.includes("OVERBOUGHT")) return "warn";
-  if (type.includes("BIG")) return "neu";
-  return "neu";
-}
-
-function formatLogDate(ts?: string) {
-  if (!ts) return "—";
-  try {
-    return new Date(ts).toLocaleString("tr-TR", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return ts;
-  }
-}
+const BRAIN_TOOLS = [
+  {
+    icon: "bell",
+    title: "Risk Raporu",
+    desc: "Stop, sektör yoğunlaşması ve volatilite analizi",
+    message: "Portföyümün risk değerlendirmesini yap",
+    accent: "var(--warning)",
+  },
+  {
+    icon: "stocks",
+    title: "Sinyal Özeti",
+    desc: "Tüm pozisyonların AL / SAT / BEKLE durumu",
+    message: "Tüm hisselerimin teknik sinyallerini özetle",
+    accent: "var(--positive)",
+  },
+  {
+    icon: "spark",
+    title: "Nakit Stratejisi",
+    desc: "Likidite oranı ve alım fırsatları",
+    message: "Nakit pozisyonum için strateji öner",
+    accent: "var(--t-accent)",
+  },
+  {
+    icon: "shield",
+    title: "Stop-Loss Kontrolü",
+    desc: "Kritik stop seviyelerini gözden geçir",
+    message: "Stop-loss seviyelerimi gözden geçir",
+    accent: "var(--negative)",
+  },
+  {
+    icon: "target",
+    title: "Hedef & Kâr",
+    desc: "Hedefe yakın pozisyonlar ve kâr alma önerisi",
+    message: "Hedef fiyatlarıma yakın pozisyonlarımı analiz et",
+    accent: "var(--info)",
+  },
+  {
+    icon: "ai",
+    title: "Haftalık Özet",
+    desc: "Performans, trend ve öncelikli aksiyonlar",
+    message: "Bu hafta portföyüm için özet ve öneriler ver",
+    accent: "var(--t-accent)",
+  },
+];
 
 function renderLines(lines: string[]) {
   return lines.map((l, i) => (
@@ -144,96 +149,6 @@ function Typing() {
   );
 }
 
-function PortfolioNewsPanel() {
-  const stocks = usePortfolioStore((s) => s.stocks);
-  const [newsBySymbol, setNewsBySymbol] = useState<Record<string, { title: string; url: string; published_at: string }[]>>({});
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (stocks.length === 0) {
-      setNewsBySymbol({});
-      return;
-    }
-    setLoading(true);
-    api
-      .getPortfolioNews()
-      .then(setNewsBySymbol)
-      .catch(() => setNewsBySymbol({}))
-      .finally(() => setLoading(false));
-  }, [stocks.length]);
-
-  const flat = Object.entries(newsBySymbol).flatMap(([sym, items]) =>
-    items.slice(0, 2).map((n) => ({ ...n, symbol: sym }))
-  );
-
-  return (
-    <>
-      <div style={{ display: "flex", alignItems: "center", marginBottom: 14, marginTop: 24 }}>
-        <span className="section-label" style={{ margin: 0 }}>
-          Portföy Haberleri
-        </span>
-        <span className="faint" style={{ marginLeft: "auto", fontSize: 11 }}>
-          Firecrawl · Exa
-        </span>
-      </div>
-      {loading ? (
-        <p className="muted" style={{ fontSize: 13 }}>
-          Haberler yükleniyor…
-        </p>
-      ) : flat.length === 0 ? (
-        <p className="faint" style={{ fontSize: 13 }}>
-          Haber yok veya API anahtarı eksik.
-        </p>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {flat.slice(0, 8).map((n, i) => (
-            <a
-              key={`${n.symbol}-${i}`}
-              href={n.url}
-              target="_blank"
-              rel="noreferrer"
-              style={{
-                fontSize: 12.5,
-                lineHeight: 1.45,
-                color: "var(--text-primary)",
-                textDecoration: "none",
-                borderBottom: "1px solid var(--border-subtle)",
-                paddingBottom: 8,
-              }}
-            >
-              <span className="badge badge--accent" style={{ marginRight: 6, fontSize: 10 }}>
-                {n.symbol}
-              </span>
-              {n.title}
-            </a>
-          ))}
-        </div>
-      )}
-    </>
-  );
-}
-
-function TradeSignalsPanel() {
-  const tradeSignals = usePortfolioStore((s) => s.tradeSignals);
-
-  if (!tradeSignals.length) return null;
-
-  return (
-    <>
-      <div style={{ display: "flex", alignItems: "center", marginBottom: 14, marginTop: 24 }}>
-        <span className="section-label" style={{ margin: 0 }}>
-          Trade Skorları
-        </span>
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {tradeSignals.map((sig) => (
-          <TradeSignalCard key={sig.symbol} data={sig} compact />
-        ))}
-      </div>
-    </>
-  );
-}
-
 function PortfolioAnalyzeButton({ onResult }: { onResult: (text: string) => void }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -252,134 +167,373 @@ function PortfolioAnalyzeButton({ onResult }: { onResult: (text: string) => void
   };
 
   return (
-    <div style={{ marginBottom: 8 }}>
+    <div className="card" style={{ padding: 16, marginBottom: 12 }}>
       <button type="button" className="btn btn--accent" style={{ width: "100%" }} disabled={loading} onClick={run}>
-        <Icon name="spark" size={14} /> {loading ? "Analiz ediliyor…" : "Portföy Analizi (LLM)"}
+        <Icon name="spark" size={14} /> {loading ? "Analiz ediliyor…" : "Portföyümü Analiz Et"}
       </button>
       {error ? (
-        <p className="neg" style={{ fontSize: 12, marginTop: 8 }}>
+        <p className="neg" style={{ fontSize: 12, marginTop: 8, marginBottom: 0 }}>
           {error}
         </p>
-      ) : null}
-      <p className="faint" style={{ fontSize: 11, marginTop: 6 }}>
-        yfinance · teknik · haber · Gemini/Claude · Telegram bildirimi
-      </p>
+      ) : (
+        <p className="faint" style={{ fontSize: 11, marginTop: 8, marginBottom: 0, lineHeight: 1.5 }}>
+          Gemini/Claude ile tam portföy raporu · Telegram bildirimi
+        </p>
+      )}
     </div>
   );
 }
 
-function ReportArchive() {
-  const [reports, setReports] = useState<ReportRow[]>([]);
-  const [open, setOpen] = useState<string | null>(null);
-  const toneColor = { pos: "var(--positive)", neg: "var(--negative)", warn: "var(--warning)", neu: "var(--info)" };
+function ChatHistorySidebar({
+  sessions,
+  activeId,
+  loading,
+  onSelect,
+  onCreate,
+  onDelete,
+}: {
+  sessions: ChatSession[];
+  activeId: string | null;
+  loading: boolean;
+  onSelect: (id: string) => void;
+  onCreate: () => void;
+  onDelete: (id: string) => void;
+}) {
+  return (
+    <aside className="ai-chat-sidebar">
+      <button type="button" className="ai-chat-sidebar__new" onClick={onCreate}>
+        <Icon name="plus" size={16} />
+        Yeni sohbet
+      </button>
+      <div className="ai-chat-sidebar__label">Son sohbetler</div>
+      <div className="ai-chat-sidebar__list">
+        {loading ? (
+          <div className="faint" style={{ fontSize: 12, padding: "8px 6px" }}>
+            Yükleniyor…
+          </div>
+        ) : sessions.length === 0 ? (
+          <div className="faint" style={{ fontSize: 12, padding: "8px 6px", lineHeight: 1.45 }}>
+            Henüz sohbet yok.
+          </div>
+        ) : (
+          sessions.map((s) => (
+            <div key={s.id} className={`ai-chat-sidebar__item${activeId === s.id ? " on" : ""}`}>
+              <button type="button" className="ai-chat-sidebar__item-btn" onClick={() => onSelect(s.id)} title={s.title}>
+                {s.title}
+              </button>
+              <button
+                type="button"
+                className="ai-chat-sidebar__del"
+                aria-label="Sohbeti sil"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(s.id);
+                }}
+              >
+                <Icon name="trash" size={12} />
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+    </aside>
+  );
+}
 
-  useEffect(() => {
-    api
-      .getAlertLog()
-      .then((log) => {
-        const rows = (log as Record<string, unknown>[]).slice(0, 12).map((e) => ({
-          id: String(e.id ?? e.timestamp),
-          kind: ALERT_KIND[String(e.type)] ?? String(e.type ?? "Kayıt"),
-          date: formatLogDate(String(e.timestamp)),
-          summary: String(e.message ?? "—"),
-          tone: toneForAlert(String(e.type)),
-        }));
-        setReports(rows);
-        if (rows[0]) setOpen(rows[0].id);
-      })
-      .catch(() => setReports([]));
-  }, []);
+function PortfolioSnapshot() {
+  const summary = usePortfolioStore((s) => s.summary);
+  const stocks = usePortfolioStore((s) => s.stocks);
+  if (!summary) return null;
+
+  const cashPct = summary.totalValue ? (summary.cash / summary.totalValue) * 100 : 0;
+  const risky = stocks.filter((s) => s.stopDist < 8).length;
+  const buySignals = stocks.filter((s) => String(s.signal).includes("AL")).length;
+
+  return (
+    <div className="card" style={{ padding: 14, marginBottom: 12 }}>
+      <div className="section-label" style={{ marginBottom: 10 }}>
+        Portföy Özeti
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div>
+          <div className="faint" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+            Toplam
+          </div>
+          <div className="tnum" style={{ fontWeight: 700, fontSize: 15 }}>
+            {fmtUSD(summary.totalValue, 0)}
+          </div>
+        </div>
+        <div>
+          <div className="faint" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+            Günlük
+          </div>
+          <div className={`tnum ${summary.dayPct >= 0 ? "pos" : "neg"}`} style={{ fontWeight: 700, fontSize: 15 }}>
+            {fmtPct(summary.dayPct)}
+          </div>
+        </div>
+        <div>
+          <div className="faint" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+            Nakit
+          </div>
+          <div className="tnum" style={{ fontSize: 13 }}>
+            {fmtUSD(summary.cash, 0)} <span className="muted">(%{cashPct.toFixed(0)})</span>
+          </div>
+        </div>
+        <div>
+          <div className="faint" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+            Pozisyon
+          </div>
+          <div className="tnum" style={{ fontSize: 13 }}>
+            {stocks.length} hisse · {buySignals} AL
+            {risky > 0 ? <span className="warn" style={{ marginLeft: 4 }}>· {risky} riskli stop</span> : null}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BrainToolCard({
+  icon,
+  title,
+  desc,
+  accent,
+  onClick,
+}: {
+  icon: string;
+  title: string;
+  desc: string;
+  accent: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="card"
+      onClick={onClick}
+      style={{
+        width: "100%",
+        textAlign: "left",
+        padding: "12px 14px",
+        marginBottom: 8,
+        cursor: "pointer",
+        borderColor: "var(--border-subtle)",
+        transition: "border-color 0.15s, background 0.15s",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = accent;
+        e.currentTarget.style.background = `color-mix(in srgb, ${accent} 6%, var(--bg-surface))`;
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = "var(--border-subtle)";
+        e.currentTarget.style.background = "var(--bg-surface)";
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 11 }}>
+        <span
+          style={{
+            width: 34,
+            height: 34,
+            borderRadius: "var(--radius-md)",
+            display: "grid",
+            placeItems: "center",
+            flexShrink: 0,
+            color: accent,
+            background: `color-mix(in srgb, ${accent} 14%, transparent)`,
+          }}
+        >
+          <Icon name={icon} size={16} />
+        </span>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontWeight: 600, fontSize: 13.5 }}>{title}</div>
+          <div className="muted" style={{ fontSize: 12, lineHeight: 1.45, marginTop: 2 }}>
+            {desc}
+          </div>
+        </div>
+        <Icon name="chevron-down" size={14} style={{ flexShrink: 0, marginTop: 2, color: "var(--text-muted)", transform: "rotate(-90deg)" }} />
+      </div>
+    </button>
+  );
+}
+
+function BrainToolsPanel({ onSend }: { onSend: (msg: string) => void }) {
   return (
     <>
-      <div style={{ display: "flex", alignItems: "center", marginBottom: 14 }}>
-        <span className="section-label" style={{ margin: 0 }}>
-          Rapor Arşivi
-        </span>
-        <span className="faint" style={{ marginLeft: "auto", fontSize: 11 }}>
-          {reports.length} kayıt
-        </span>
+      <div className="section-label" style={{ marginBottom: 10 }}>
+        ARGOS Araçları
       </div>
-      <div>
-        {reports.length === 0 ? (
-          <p className="faint" style={{ fontSize: 13, lineHeight: 1.5 }}>
-            Henüz alarm kaydı yok. Tetiklenen alarmlar burada görünür.
-          </p>
-        ) : null}
-        {reports.map((r) => {
-          const isOpen = open === r.id;
-          return (
-            <div key={r.id} className={`report-acc${isOpen ? " open" : ""}`}>
-              <div
-                className="report-acc__head"
-                onClick={() => setOpen(isOpen ? null : r.id)}
-                role="button"
-                tabIndex={0}
-              >
-                <span style={{ width: 8, height: 8, borderRadius: "50%", background: toneColor[r.tone] }} />
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 13.5 }}>{r.kind}</div>
-                  <div className="faint tnum" style={{ fontSize: 11 }}>
-                    {r.date}
-                  </div>
-                </div>
-                <span className="report-acc__chev">
-                  <Icon name="chevron-down" size={16} />
-                </span>
-              </div>
-              {isOpen ? <div className="report-acc__body">{r.summary}</div> : null}
-            </div>
-          );
-        })}
-      </div>
+      {BRAIN_TOOLS.map((tool) => (
+        <BrainToolCard
+          key={tool.title}
+          icon={tool.icon}
+          title={tool.title}
+          desc={tool.desc}
+          accent={tool.accent}
+          onClick={() => onSend(tool.message)}
+        />
+      ))}
     </>
   );
 }
 
 export function AiAnalysisPage() {
   const summary = usePortfolioStore((s) => s.summary);
-  const [msgs, setMsgs] = useState<{ from: "user" | "argos"; lines: string[] }[]>([
-    {
-      from: "argos",
-      lines: [
-        "Merhaba 👁️ Ben **ARGOS**. Portföyünü 7/24 izliyorum.",
-        `Bugün portföyün ${summary ? fmtPct(summary.dayPct) : "—"} durumda. Ne öğrenmek istersin?`,
-      ],
-    },
-  ]);
+  const [msgs, setMsgs] = useState<{ from: "user" | "argos"; lines: string[] }[]>([]);
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const welcomeLines = [
+    "Merhaba 👁️ Ben **ARGOS**. Portföyünü 7/24 izliyorum.",
+    `Bugün portföyün ${summary ? fmtPct(summary.dayPct) : "—"} durumda. Ne öğrenmek istersin?`,
+  ];
+
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [msgs, typing]);
+
+  const refreshSessions = async () => {
+    try {
+      const list = await api.listChats();
+      setSessions(list.sessions);
+      return list.sessions;
+    } catch {
+      setSessions([]);
+      return [];
+    }
+  };
+
+  const createNewChat = async () => {
+    const created = await api.createChat();
+    setActiveSessionId(created.id);
+    setMsgs([{ from: "argos", lines: welcomeLines }]);
+    await api.addChatMessage(created.id, "assistant", welcomeLines.join("\n"));
+    await refreshSessions();
+    return created.id;
+  };
+
+  useEffect(() => {
+    let mounted = true;
+    const init = async () => {
+      setSessionsLoading(true);
+      const list = await refreshSessions();
+      if (!mounted) return;
+      if (list.length > 0) {
+        const first = list[0];
+        setActiveSessionId(first.id);
+        try {
+          const full = await api.getChat(first.id);
+          if (!mounted) return;
+          const mapped: { from: "user" | "argos"; lines: string[] }[] = full.messages.map((m) => ({
+            from: m.role === "assistant" ? "argos" : "user",
+            lines: m.content.split(/\n+/).filter(Boolean),
+          }));
+          setMsgs(mapped.length ? mapped : [{ from: "argos", lines: welcomeLines }]);
+        } catch {
+          setMsgs([{ from: "argos", lines: welcomeLines }]);
+        }
+      } else {
+        try {
+          await createNewChat();
+        } catch {
+          setMsgs([{ from: "argos", lines: welcomeLines }]);
+        }
+      }
+      if (mounted) setSessionsLoading(false);
+    };
+    init();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const openChat = async (id: string) => {
+    setActiveSessionId(id);
+    try {
+      const full = await api.getChat(id);
+      const mapped: { from: "user" | "argos"; lines: string[] }[] = full.messages.map((m) => ({
+        from: m.role === "assistant" ? "argos" : "user",
+        lines: m.content.split(/\n+/).filter(Boolean),
+      }));
+      setMsgs(mapped.length ? mapped : [{ from: "argos", lines: welcomeLines }]);
+    } catch {
+      setMsgs([{ from: "argos", lines: welcomeLines }]);
+    }
+  };
+
+  const deleteChat = async (id: string) => {
+    try {
+      await api.deleteChat(id);
+      const list = await refreshSessions();
+      if (activeSessionId === id) {
+        if (list[0]) await openChat(list[0].id);
+        else await createNewChat();
+      }
+    } catch {
+      /* sessiz */
+    }
+  };
+
+  const appendArgos = async (text: string) => {
+    const lines = text.split(/\n+/).filter(Boolean);
+    setMsgs((m) => [...m, { from: "argos", lines: lines.length ? lines : [text] }]);
+    if (activeSessionId) {
+      await api.addChatMessage(activeSessionId, "assistant", text).catch(() => {});
+      await refreshSessions();
+    }
+  };
 
   const send = async (text?: string) => {
     const q = (text || input).trim();
     if (!q) return;
     setMsgs((m) => [...m, { from: "user", lines: [q] }]);
     setInput("");
+    let sid = activeSessionId;
+    if (!sid) {
+      try {
+        sid = await createNewChat();
+      } catch {
+        sid = null;
+      }
+    }
+    if (sid) {
+      await api.addChatMessage(sid, "user", q).catch(() => {});
+      await refreshSessions();
+    }
     setTyping(true);
     try {
       const res = await api.analysisChat(q);
-      const lines = res.response.split(/\n+/).filter(Boolean);
-      setMsgs((m) => [...m, { from: "argos", lines: lines.length ? lines : [res.response] }]);
+      await appendArgos(res.response);
     } catch {
       setMsgs((m) => [
         ...m,
         { from: "argos", lines: ["LLM yapılandırılmamış veya backend kapalı. `.env` dosyasını kontrol edin."] },
       ]);
+      if (sid) {
+        await api
+          .addChatMessage(sid, "assistant", "LLM yapılandırılmamış veya backend kapalı. `.env` dosyasını kontrol edin.")
+          .catch(() => {});
+      }
     } finally {
       setTyping(false);
     }
   };
 
   return (
-    <div
-      className="page ai-layout"
-      style={{ paddingBottom: 0, height: "100%", overflow: "hidden" }}
-    >
-      <div className="card" style={{ display: "flex", flexDirection: "column", padding: 0, overflow: "hidden", minHeight: 0 }}>
+    <div className="page ai-layout" style={{ paddingBottom: 0, height: "100%", overflow: "hidden" }}>
+      <ChatHistorySidebar
+        sessions={sessions}
+        activeId={activeSessionId}
+        loading={sessionsLoading}
+        onSelect={openChat}
+        onCreate={() => createNewChat().catch(() => {})}
+        onDelete={deleteChat}
+      />
+
+      <div className="card ai-chat-main" style={{ padding: 0, overflow: "hidden" }}>
         <div
           style={{
             display: "flex",
@@ -400,7 +554,10 @@ export function AiAnalysisPage() {
           </span>
           <div>
             <div style={{ fontWeight: 600, fontSize: 15 }}>ARGOS Brain</div>
-            <div className="muted" style={{ fontSize: 11, display: "flex", alignItems: "center", gap: 5 }}>
+            <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
+              Portföyün hakkında her şeyi sorabilirsin
+            </div>
+            <div className="muted" style={{ fontSize: 11, display: "flex", alignItems: "center", gap: 5, marginTop: 3 }}>
               <span
                 style={{
                   width: 6,
@@ -409,7 +566,7 @@ export function AiAnalysisPage() {
                   background: "var(--positive)",
                   animation: "pulse-dot 2s infinite",
                 }}
-              />{" "}
+              />
               Aktif · gerçek zamanlı
             </div>
           </div>
@@ -454,17 +611,15 @@ export function AiAnalysisPage() {
         </div>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", overflowY: "auto", paddingBottom: 28, paddingRight: 2, minHeight: 0 }}>
-        <PortfolioAnalyzeButton
-          onResult={(text) => {
-            const lines = text.split(/\n+/).filter(Boolean);
-            setMsgs((m) => [...m, { from: "argos", lines: lines.length ? lines : [text] }]);
-          }}
-        />
-        <TradeSignalsPanel />
-        <PortfolioNewsPanel />
-        <ReportArchive />
+      <div className="ai-chat-tools">
+        <PortfolioAnalyzeButton onResult={(text) => appendArgos(text).catch(() => {})} />
+        <PortfolioSnapshot />
+        <BrainToolsPanel onSend={send} />
       </div>
     </div>
   );
+}
+
+if (typeof window !== "undefined") {
+  Object.assign(window, { AiAnalysis: AiAnalysisPage });
 }

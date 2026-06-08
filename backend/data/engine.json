@@ -1,0 +1,101 @@
+{
+  "running": true,
+  "mode": "paper",
+  "risk_per_trade": 2.0,
+  "max_positions": 6,
+  "auto_telegram": true,
+  "strategies": [
+    {
+      "id": "momentum",
+      "name": "Momentum Kırılım",
+      "desc": "20 günlük direnç kırılımı + hacim onayı",
+      "active": true,
+      "win_rate": 68,
+      "trades": 42
+    },
+    {
+      "id": "ema",
+      "name": "EMA Geçiş",
+      "desc": "EMA20 / EMA50 altın kesişimi",
+      "active": true,
+      "win_rate": 61,
+      "trades": 35
+    },
+    {
+      "id": "rsi",
+      "name": "RSI Dönüş",
+      "desc": "RSI 30 altından dönüş + MACD onayı",
+      "active": true,
+      "win_rate": 64,
+      "trades": 28
+    },
+    {
+      "id": "meanrev",
+      "name": "Ortalamaya Dönüş",
+      "desc": "Bollinger alt bandı + aşırı satım",
+      "active": false,
+      "win_rate": 57,
+      "trades": 19
+    }
+  ],
+  "trades": [
+    {
+      "symbol": "MRVL",
+      "side": "AL",
+      "qty": 40,
+      "entry": 295.1,
+      "current": 319.58,
+      "pnl_pct": 8.29,
+      "status": "açık",
+      "strategy": "Momentum Kırılım",
+      "opened_at": "2026-06-03T10:00:00"
+    },
+    {
+      "symbol": "AMD",
+      "side": "AL",
+      "qty": 60,
+      "entry": 151.2,
+      "current": 164.05,
+      "pnl_pct": 8.5,
+      "status": "açık",
+      "strategy": "EMA Geçiş",
+      "opened_at": "2026-06-01T10:00:00"
+    },
+    {
+      "symbol": "NVDA",
+      "side": "AL",
+      "qty": 80,
+      "entry": 168.4,
+      "current": 178.34,
+      "pnl_pct": 5.9,
+      "status": "açık",
+      "strategy": "RSI Dönüş",
+      "opened_at": "2026-05-28T10:00:00"
+    },
+    {
+      "symbol": "PLTR",
+      "side": "SAT",
+      "qty": 120,
+      "entry": 44.8,
+      "current": 41.22,
+      "pnl_pct": 7.99,
+      "status": "kapalı",
+      "strategy": "Stop Koruma",
+      "opened_at": "2026-06-04T10:00:00"
+    }
+  ],
+  "feed": [
+    {
+      "time": "10:42:18",
+      "symbol": "MRVL",
+      "message": "Momentum kırılımı onaylandı, AL sinyali",
+      "tone": "buy"
+    },
+    {
+      "time": "10:39:02",
+      "symbol": "AMD",
+      "message": "Hacim ortalamanın 1.8x üzerinde, pozisyon korunuyor",
+      "tone": "info"
+    }
+  ]
+}

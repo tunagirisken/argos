@@ -26,7 +26,13 @@ interface PortfolioState {
   setWsConnected: (v: boolean) => void;
 }
 
-function buildSummary(stocks: Stock[], cash: number, dayPl?: number, dayPct?: number): PortfolioSummary {
+function buildSummary(
+  stocks: Stock[],
+  cash: number,
+  dayPl?: number,
+  dayPct?: number,
+  pendingOrders = 0
+): PortfolioSummary {
   const invested = stocks.reduce((a, s) => a + s.value, 0);
   const totalCost = stocks.reduce((a, s) => a + s.totalCost, 0);
   const dayPL = dayPl ?? stocks.reduce((a, s) => a + s.dayPL, 0);
@@ -35,7 +41,7 @@ function buildSummary(stocks: Stock[], cash: number, dayPl?: number, dayPct?: nu
     totalValue,
     invested,
     cash,
-    pendingOrders: 0,
+    pendingOrders,
     totalCost,
     totalReturn: invested - totalCost,
     totalReturnPct: totalCost ? ((invested - totalCost) / totalCost) * 100 : 0,
@@ -93,17 +99,38 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
       const portfolio = await api.getPortfolio();
       const positions = (portfolio.positions as Record<string, unknown>[]) || [];
       const cash = Number(portfolio.cash_usd) || 0;
+      const pendingOrders = ((portfolio.pending_orders as { price?: number; shares?: number }[]) || []).reduce(
+        (sum, o) => sum + Number(o.price ?? 0) * Number(o.shares ?? 0),
+        0
+      );
       const symbols = positions.map((p) => String(p.symbol));
 
-      const [summaryRes, bundlesRes, tradeRes] = await Promise.all([
+      const [summaryRes, tradeRes] = await Promise.all([
         api.getSummary().catch(() => null),
-        symbols.length ? api.getMarketBundles(symbols).catch(() => ({ bundles: {} })) : Promise.resolve({ bundles: {} }),
         symbols.length
           ? api.getTradeSignalsPortfolio().catch(() => ({ signals: [], count: 0 }))
           : Promise.resolve({ signals: [], count: 0 }),
       ]);
 
-      const bundles = (bundlesRes.bundles ?? {}) as Record<string, MarketBundle>;
+      let bundles: Record<string, MarketBundle> = {};
+      if (symbols.length) {
+        try {
+          const bundlesRes = await api.getMarketBundles(symbols);
+          bundles = (bundlesRes.bundles ?? {}) as Record<string, MarketBundle>;
+        } catch {
+          const entries = await Promise.all(
+            symbols.map(async (sym) => {
+              try {
+                const bundle = await api.getMarketBundle(sym);
+                return [sym.toUpperCase(), bundle] as const;
+              } catch {
+                return [sym.toUpperCase(), { symbol: sym.toUpperCase(), error: "piyasa verisi alınamadı" }] as const;
+              }
+            })
+          );
+          bundles = Object.fromEntries(entries);
+        }
+      }
       const bundleWarnings: string[] = [];
 
       const stocks: Stock[] = positions.map((pos) => {
@@ -126,14 +153,14 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
             totalValue: Number(summaryRes.total_market_value),
             invested: Number(summaryRes.total_cost_basis),
             cash: Number(summaryRes.cash_usd),
-            pendingOrders: 0,
+            pendingOrders,
             totalCost: Number(summaryRes.total_cost_basis),
             totalReturn: Number(summaryRes.total_unrealized_pl),
             totalReturnPct: Number(summaryRes.total_unrealized_pl_pct),
             dayPL: Number(summaryRes.day_pl ?? stocks.reduce((a, s) => a + s.dayPL, 0)),
             dayPct: Number(summaryRes.day_pl_pct ?? 0),
           }
-        : buildSummary(stocks, cash);
+        : buildSummary(stocks, cash, undefined, undefined, pendingOrders);
 
       set({ stocks, summary, tradeSignals: tradeRes.signals, bundleWarnings, loadError: null });
     } catch (e) {
@@ -178,9 +205,10 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
     });
     const prevSummary = get().summary;
     const cash = prevSummary?.cash ?? 0;
-    const rebuilt = buildSummary(stocks, cash);
+    const pending = prevSummary?.pendingOrders ?? 0;
+    const rebuilt = buildSummary(stocks, cash, undefined, undefined, pending);
     const summary = prevSummary
-      ? { ...rebuilt, dayPL: prevSummary.dayPL, dayPct: prevSummary.dayPct }
+      ? { ...rebuilt, dayPL: prevSummary.dayPL, dayPct: prevSummary.dayPct, pendingOrders: pending }
       : rebuilt;
     set({
       stocks,

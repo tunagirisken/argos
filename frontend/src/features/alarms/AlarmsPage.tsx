@@ -6,11 +6,11 @@ import { usePortfolioStore } from "../../store/portfolioStore";
 import type { AlarmRow } from "../../types";
 
 const ALARM_TYPES = [
-  { id: "price_above", label: "Fiyat ↑" },
-  { id: "price_below", label: "Fiyat ↓" },
-  { id: "stop_loss", label: "Stop-loss" },
-  { id: "rsi_high", label: "RSI > 70" },
-  { id: "volume", label: "Hacim" },
+  { id: "price_above", label: "Fiyat ↑", supported: true },
+  { id: "price_below", label: "Fiyat ↓", supported: true },
+  { id: "stop_loss", label: "Stop-loss", supported: true },
+  { id: "rsi_high", label: "RSI > 70", supported: false, hint: "Yakında" },
+  { id: "volume", label: "Hacim", supported: false, hint: "Yakında" },
 ] as const;
 
 type AlarmTypeId = (typeof ALARM_TYPES)[number]["id"];
@@ -62,7 +62,9 @@ export function AlarmsPage() {
 
   const add = async () => {
     if (!level) return;
-    const label = ALARM_TYPES.find((t) => t.id === atype)?.label ?? atype;
+    const typeDef = ALARM_TYPES.find((t) => t.id === atype);
+    if (!typeDef?.supported) return;
+    const label = typeDef.label;
     const res = await api.createAlert({
       symbol: ticker,
       condition: toBackendCondition(atype),
@@ -261,10 +263,14 @@ export function AlarmsPage() {
             <button
               key={tp.id}
               type="button"
-              className={`chip${atype === tp.id ? " active" : ""}`}
-              onClick={() => setAtype(tp.id)}
+              className={`chip${atype === tp.id ? " active" : ""}${!tp.supported ? " disabled" : ""}`}
+              title={!tp.supported ? tp.hint : undefined}
+              disabled={!tp.supported}
+              onClick={() => tp.supported && setAtype(tp.id)}
+              style={!tp.supported ? { opacity: 0.45, cursor: "not-allowed" } : undefined}
             >
               {tp.label}
+              {!tp.supported ? ` (${tp.hint})` : ""}
             </button>
           ))}
         </div>

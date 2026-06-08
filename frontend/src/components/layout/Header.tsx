@@ -8,6 +8,7 @@ const TITLES: Record<string, string> = {
   dashboard: "Genel Bakış",
   discovery: "Keşif Motoru",
   stock: "Hisse Detay",
+  trade: "Otomatik Motor",
   ai: "ARGOS Brain",
   alarms: "Alarmlar",
   docs: "Dokümantasyon",

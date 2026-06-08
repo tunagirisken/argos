@@ -1,0 +1,18 @@
+---
+description: ARGOS frontend React/TS kuralları
+globs: frontend/src/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Frontend
+
+- Stack: Vite + React 18 + TypeScript (strict) + zustand. Bağlam: `ai/context/frontend.md`.
+- **State:** zustand store'lar (`store/`). Canlı piyasa verisi TEK kaynak → `portfolioStore.applyMarketUpdate` (fiyat, sinyal, RSI, trade skoru app geneli buradan güncellenir).
+- **API:** REST için `services/api.ts`, WS için `services/ws.ts`. Component içinde direkt `fetch` yazma.
+- **Auth:** Tüm `/api/*` JWT Bearer ister (`authStore`). Yeni REST çağrısı eklerken token header'ın `api.ts` üzerinden geçtiğinden emin ol.
+- **Stil:** `tokens.css` + `global.css` + `design-tv.css` + Tailwind köprüsü. Hardcoded renk/spacing YASAK — token kullan (`var(--accent)` vb.). 8px spacing grid.
+- **Grafik:** lightweight-charts + `ResizeObserver` (`chart-wrap`). Sabit px genişlik verme; container'a uy (Snap/yarım ekran kırılmasın).
+- **Responsive:** `styles/responsive.css` merkezi. Breakpoint: 1280 / 1024 / 768 / 640 / 480.
+- **Mock yok:** Synthetic veri üreticileri audit'te kaldırıldı (`genCandles`, `buildLwSeries`). Sadece gerçek API; boş durumda empty state göster, sahte satır basma.
+- **Yeni endpoint kullanımı:** önce `services/api.ts`'e fonksiyon, sonra `types/`'a interface, en son component.
+- shadcn parça parça kullanılıyor; çoğu UI custom CSS. Yeni shadcn bileşeni: `npx shadcn@latest add <x>`, tema `tokens.css`'e bağlı.

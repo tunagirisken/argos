@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useRef, useState, type CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
+import { ArgosCube } from "../../components/brand/ArgosCube";
 import { RsiMini } from "../../components/charts/RsiMini";
 import { Icon } from "../../components/icons/Icon";
 import { ThemeToggle } from "../../components/ui/ThemeToggle";
@@ -9,18 +10,18 @@ import { useAuthStore } from "../../store/authStore";
 import "../../styles/landing.css";
 
 const LP_FEATURES = [
-  { icon: "eye", title: "7/24 İzleme", desc: "Argos hiç uyumaz. Pozisyonların gece gündüz izlenir, önemli her hareket anında yakalanır." },
-  { icon: "spark", title: "Akıllı Sinyaller", desc: "RSI, MACD, Bollinger ve EMA birleşik skoru tek bakışta AL / SAT / BEKLE kararını netleştirir." },
-  { icon: "bell", title: "Telegram Bildirimleri", desc: "Stop-loss, hedef ve RSI eşikleri tetiklendiğinde Telegram'a anlık mesaj düşer." },
-  { icon: "stocks", title: "Teknik Analiz", desc: "Profesyonel candlestick grafikleri, indikatör overlay'leri ve hacim — terminal kalitesinde." },
-  { icon: "ai", title: "AI Destekli Rapor", desc: "Sabah brifingi ve kapanış raporları yapay zeka ile özetlenir, riskler önceden işaretlenir." },
-  { icon: "target", title: "Fırsat Keşfi", desc: "Aşırı satım, kırılım ve momentum sinyalleriyle yeni fırsatlar gözden kaçmadan önünüze gelir." },
+  { icon: "eye", title: "7/24 İzleme", desc: "Piyasa açıkken de kapalıyken de portföyünüz sürekli takip edilir; önemli her hareket anında yakalanır." },
+  { icon: "spark", title: "Akıllı Sinyaller", desc: "RSI, MACD, Bollinger ve EMA tek bir skorda birleşir; AL, SAT ya da BEKLE kararı bir bakışta netleşir." },
+  { icon: "bell", title: "Telegram Bildirimleri", desc: "Stop-loss, hedef ya da RSI eşiği tetiklendiğinde Telegram'a anında mesaj gelir." },
+  { icon: "stocks", title: "Teknik Analiz", desc: "Profesyonel mum grafikleri, indikatör katmanları ve hacim. Terminal kalitesinde analiz." },
+  { icon: "ai", title: "Yapay Zekâ Raporları", desc: "Sabah brifingi ve kapanış raporları yapay zekâ ile özetlenir, riskler önceden işaretlenir." },
+  { icon: "target", title: "Fırsat Keşfi", desc: "Aşırı satım, kırılım ve momentum sinyalleriyle yeni fırsatlar gözden kaçmaz." },
 ];
 
 const LP_STEPS = [
-  { n: "1", title: "Kurulum", desc: "API anahtarlarını gir, portföyünü ekle. 5 dakikada hazır." },
-  { n: "2", title: "İzle", desc: "Canlı fiyatlar ve teknik sinyaller otomatik olarak akmaya başlar." },
-  { n: "3", title: "Kazan", desc: "Telegram bildirimleriyle fırsatları ve riskleri anında yakala." },
+  { n: "1", title: "Kurun", desc: "API anahtarlarınızı girin, portföyünüzü ekleyin. 5 dakikada hazır." },
+  { n: "2", title: "İzleyin", desc: "Canlı fiyatlar ve teknik sinyaller otomatik akmaya başlar." },
+  { n: "3", title: "Kazanın", desc: "Telegram bildirimleriyle fırsatları ve riskleri anında yakalayın." },
 ];
 
 const ROW_COLORS: Record<string, string> = {
@@ -30,33 +31,25 @@ const ROW_COLORS: Record<string, string> = {
 };
 
 function LpPreview() {
-  const symbols = ["NVDA", "TSLA", "AMD"];
-  const [rows, setRows] = useState<{ t: string; price: number; pct: number }[]>([]);
-  const [nvdaRsi, setNvdaRsi] = useState<number | null>(null);
-  const [nvdaSignal, setNvdaSignal] = useState("—");
+  const [rows, setRows] = useState([
+    { t: "NVDA", price: 178.34, pct: 2.81 },
+    { t: "TSLA", price: 248.12, pct: -3.42 },
+    { t: "AMD", price: 164.05, pct: 4.12 },
+  ]);
+  const [flash, setFlash] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const { bundles } = await api.getMarketBundles(symbols);
-        setRows(
-          symbols
-            .map((t) => {
-              const b = bundles[t];
-              if (!b?.price) return null;
-              return { t, price: b.price!, pct: b.change_pct ?? 0 };
-            })
-            .filter((r): r is { t: string; price: number; pct: number } => r !== null)
-        );
-        const nv = bundles.NVDA;
-        if (nv?.indicators?.rsi != null) setNvdaRsi(Math.round(nv.indicators.rsi));
-        if (nv?.signal) setNvdaSignal(String(nv.signal));
-      } catch {
-        /* landing önizleme — sessiz */
-      }
-    };
-    load();
-    const id = window.setInterval(load, 60_000);
+    const id = window.setInterval(() => {
+      setRows((prev) =>
+        prev.map((r) => {
+          const d = (Math.random() - 0.5) * r.price * 0.003;
+          const np = +(r.price + d).toFixed(2);
+          setFlash((f) => ({ ...f, [r.t]: np >= r.price ? "pos" : "neg" }));
+          return { ...r, price: np };
+        })
+      );
+      window.setTimeout(() => setFlash({}), 350);
+    }, 2000);
     return () => window.clearInterval(id);
   }, []);
 
@@ -77,7 +70,7 @@ function LpPreview() {
           {rows.map((r) => {
             const pos = r.pct >= 0;
             return (
-              <div key={r.t} className="lp-row">
+              <div key={r.t} className={`lp-row${flash[r.t] ? ` flash-${flash[r.t]}` : ""}`}>
                 <span
                   className="ticker-logo"
                   style={{
@@ -112,9 +105,9 @@ function LpPreview() {
           </div>
         </div>
         <div className="lp-gauge">
-          <RsiMini value={nvdaRsi ?? 50} w={84} />
+          <RsiMini value={61} w={84} />
           <span style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 4 }}>
-            NVDA · {nvdaSignal}
+            NVDA · Nötr
           </span>
         </div>
       </div>
@@ -258,16 +251,13 @@ export function LandingPage({ scrollToLogin }: { scrollToLogin?: boolean }) {
   const navLinks: [string, string][] = [
     ["features", "Özellikler"],
     ["how", "Nasıl Çalışır"],
-    ["login", "Dokümantasyon"],
   ];
 
   return (
     <div className="lp" ref={rootRef}>
       <nav className="lp-nav">
         <button type="button" className="lp-nav__brand" onClick={() => scrollTo("hero")}>
-          <span className="lp-mark">
-            <Icon name="eye" size={20} />
-          </span>
+          <ArgosCube size={24} />
           <span className="lp-word">ARGOS</span>
         </button>
         <div className="lp-nav__links">
@@ -292,29 +282,31 @@ export function LandingPage({ scrollToLogin }: { scrollToLogin?: boolean }) {
         <div className="lp-hero__inner">
           <div className="lp-hero__left">
             <span className="lp-badge">
-              <span className="lp-live__dot" /> Canlı Portföy Takibi
+              <span className="lp-live__dot" /> Yapay Zekâ Destekli Analiz
             </span>
             <h1 className="lp-title">
               <span className="lp-title__mono">ARGOS</span>
-              <span className="lp-title__sub">100 Gözlü Finansal Bekçi</span>
+              <span className="lp-title__sub">Piyasayı sizin için izler</span>
             </h1>
             <p className="lp-desc">
-              Yapay zeka destekli <strong>dijital yatırım asistanı</strong>. RSI, MACD, Bollinger — tüm teknik
-              sinyaller tek ekranda. Fırsatları kaçırmadan önce sizi uyarır.
+              ARGOS, portföyünüzü <strong>gerçek zamanlı</strong> izler; RSI, MACD ve Bollinger gibi teknik
+              sinyalleri tek ekranda toplar. Önemli bir fırsat ya da risk belirdiğinde anında haber verir.
             </p>
             <div className="lp-cta">
               <button type="button" className="btn btn--accent lp-cta__main" onClick={() => scrollTo("login")}>
-                Hemen Başla →
+                Ücretsiz Başla
               </button>
-              <button type="button" className="btn btn--ghost" onClick={() => scrollTo("how")}>
-                <Icon name="play" size={14} style={{ verticalAlign: "-2px", marginRight: 4 }} />
-                Demo İzle
+              <button type="button" className="lp-cta__demo" onClick={() => scrollTo("how")}>
+                <span className="lp-cta__play">
+                  <Icon name="play" size={12} />
+                </span>
+                Nasıl çalışır?
               </button>
             </div>
             <div className="lp-trust">
-              <span>✓ Ücretsiz</span>
-              <span>✓ Kurulum 5 dk</span>
-              <span>✓ Telegram bildirimleri</span>
+              <span>Ücretsiz</span>
+              <span>5 dakikada kurulum</span>
+              <span>Telegram bildirimleri</span>
             </div>
           </div>
           <div className="lp-hero__right">
@@ -326,7 +318,7 @@ export function LandingPage({ scrollToLogin }: { scrollToLogin?: boolean }) {
       <section className="lp-section" id="features">
         <div className="lp-section__head" data-reveal>
           <h2>Neden ARGOS?</h2>
-          <p>Profesyonel trader araçları, kişisel portföy yönetimi</p>
+          <p>Profesyonel analiz araçları, sade bir arayüzde.</p>
         </div>
         <div className="lp-features">
           {LP_FEATURES.map((f, i) => (
@@ -348,8 +340,8 @@ export function LandingPage({ scrollToLogin }: { scrollToLogin?: boolean }) {
 
       <section className="lp-section lp-section--alt" id="how">
         <div className="lp-section__head" data-reveal>
-          <h2>3 Adımda Başla</h2>
-          <p>Kurulumdan ilk bildirime kadar dakikalar içinde</p>
+          <h2>3 Adımda Başlayın</h2>
+          <p>Kurulumdan ilk bildirime, sadece dakikalar.</p>
         </div>
         <div className="lp-steps">
           {LP_STEPS.map((s, i) => (
@@ -372,7 +364,7 @@ export function LandingPage({ scrollToLogin }: { scrollToLogin?: boolean }) {
       <section className="lp-section" id="login">
         <div className="lp-section__head" data-reveal>
           <h2>ARGOS'a Giriş Yap</h2>
-          <p>Hesabınla giriş yap ve portföyünü izlemeye başla</p>
+          <p>Demo için herhangi bir e-posta ve şifre yeterli.</p>
         </div>
         <div data-reveal>
           <LpLogin />
@@ -382,16 +374,15 @@ export function LandingPage({ scrollToLogin }: { scrollToLogin?: boolean }) {
       <footer className="lp-footer">
         <div className="lp-footer__cols">
           <div>
-            <div className="lp-nav__brand" style={{ marginBottom: 10 }}>
-              <span className="lp-mark">
-                <Icon name="eye" size={18} />
-              </span>
+            <div className="lp-nav__brand" style={{ marginBottom: 12 }}>
+              <ArgosCube size={20} />
               <span className="lp-word" style={{ fontSize: 16 }}>
                 ARGOS
               </span>
             </div>
-            <p style={{ color: "var(--text-muted)", fontSize: 13, maxWidth: 240, lineHeight: 1.6 }}>
-              Dijital yatırım asistanı — portföyünü izleyen, analiz eden ve uyaran kişisel bekçin.
+            <p style={{ color: "var(--text-muted)", fontSize: 13, maxWidth: 250, lineHeight: 1.6 }}>
+              Yapay zekâ destekli yatırım asistanı. Portföyünüzü gerçek zamanlı izler, teknik analizle yorumlar ve
+              önemli gelişmeleri anında bildirir.
             </p>
           </div>
           <div>
@@ -416,7 +407,7 @@ export function LandingPage({ scrollToLogin }: { scrollToLogin?: boolean }) {
           </div>
         </div>
         <div className="lp-footer__bottom">
-          <span>© 2026 ARGOS — Tüm hakları saklıdır. Tuna Girişken</span>
+          <span>© 2026 ARGOS · Tüm hakları saklıdır · Tuna Girişken</span>
           <span style={{ fontStyle: "italic" }}>Bu uygulama yatırım tavsiyesi vermez.</span>
         </div>
       </footer>

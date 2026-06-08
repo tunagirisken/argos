@@ -148,7 +148,7 @@ External: yfinance, Firecrawl, Exa, Anthropic/Gemini, Telegram
 ### Still Stale (future work)
 
 - `docs/FRONTEND-IMPLEMENTATION-PLAN.md` — references deleted fixtures
-- `ai/context/frontend.md` — DesignPreview step obsolete
+- ~~`ai/context/frontend.md` — DesignPreview step obsolete~~ **Çözüldü** (2026-06): güncel Vite/React mimarisi, mock yok, `.cursor/rules/frontend-react.mdc`
 - `docContent.ts` — many placeholder pages
 - `design/bps/01_design/` — archive or delete
 

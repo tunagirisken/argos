@@ -5,6 +5,7 @@ import logging
 from typing import Any
 
 from backend.services import chart_service, price_service, technical_service
+from backend.utils.json_safe import sanitize_for_json
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +84,7 @@ async def get_market_bundle(symbol: str) -> dict[str, Any]:
     )
     change_pct = float(price.get("change_pct") or 0)
     components = _signal_components(ind, change_pct)
-    return {
+    return sanitize_for_json({
         "symbol": sym,
         "price": price["price"],
         "change_pct": change_pct,
@@ -99,7 +100,7 @@ async def get_market_bundle(symbol: str) -> dict[str, Any]:
         "risk_level": sig.get("risk_level"),
         "signal_components": components,
         "signal_sum": sum(c["val"] for c in components),
-    }
+    })
 
 
 async def get_market_bundles(symbols: list[str]) -> dict[str, Any]:
@@ -128,7 +129,7 @@ async def get_market_snapshot(symbol: str) -> dict[str, Any]:
     )
     change_pct = float(price.get("change_pct") or 0)
     components = _signal_components(ind, change_pct)
-    return {
+    return sanitize_for_json({
         "symbol": sym,
         "price": price["price"],
         "change_pct": change_pct,
@@ -138,7 +139,7 @@ async def get_market_snapshot(symbol: str) -> dict[str, Any]:
         "confidence": sig["confidence"],
         "signal_components": components,
         "signal_sum": sum(c["val"] for c in components),
-    }
+    })
 
 
 async def get_market_snapshots(symbols: list[str]) -> dict[str, Any]:

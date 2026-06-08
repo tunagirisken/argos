@@ -12,8 +12,11 @@ from backend.api.routes import (
     alerts,
     analysis,
     auth,
+    chats,
+    config,
     discovery,
     docs,
+    engine,
     market,
     news,
     symbols,
@@ -21,6 +24,7 @@ from backend.api.routes import (
     prices,
     setup,
     technical,
+    watchlist,
 )
 from backend.api.websocket import router as ws_router
 from backend.schedulers.jobs import start_scheduler, stop_scheduler
@@ -68,7 +72,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="ARGOS",
     description="Kişisel portföy yönetim botu — backend API",
-    version="1.0.0",
+    version="1.1.0",
     lifespan=lifespan,
 )
 
@@ -99,8 +103,12 @@ app.include_router(news.router, prefix=api_prefix)
 app.include_router(alerts.router, prefix=api_prefix)
 app.include_router(setup.router, prefix=api_prefix)
 app.include_router(auth.router, prefix=api_prefix)
+app.include_router(chats.router, prefix=api_prefix)
 app.include_router(docs.router, prefix=api_prefix)
 app.include_router(symbols.router, prefix=api_prefix)
+app.include_router(engine.router, prefix=api_prefix)
+app.include_router(config.router, prefix=api_prefix)
+app.include_router(watchlist.router, prefix=api_prefix)
 
 # WebSocket
 app.include_router(ws_router)
