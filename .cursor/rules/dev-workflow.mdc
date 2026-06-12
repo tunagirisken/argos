@@ -1,0 +1,50 @@
+---
+description: Backend geliştirme döngüsü — test, semver, commit, push
+alwaysApply: true
+---
+
+# Geliştirme döngüsü (backend)
+
+Her backend geliştirmesinden (büyük/küçük fark etmez) sonra **zorunlu sıra**:
+
+```
+Geliştirme → Yapısal test → Versiyon artır → Commit → Push
+```
+
+Test başarısızsa dur; düzelt, testi tekrarla. Versiyon/commit/push yalnızca test geçince.
+
+## 1. Yapısal test
+
+```bash
+make test-all
+```
+
+- Sadece değişen modül değil; etkilenebilecek bağlantılı bileşenler (regresyon) dahil.
+- İsteğe bağlı: `make lint`
+
+## 2. Semantik versiyon (MAJOR.MINOR.PATCH)
+
+Kaynak: kök `VERSION` (senkron: `backend/main.py`, `frontend/package.json`).
+
+| Artırım | Ne zaman | Kim |
+|---------|----------|-----|
+| **MAJOR** | Breaking change | **Yalnızca kullanıcı onayı** — kendi başına artırma; gerekirse onay iste |
+| **MINOR** | Yeni özellik / geriye uyumlu işlevsellik | Agent |
+| **PATCH** | Hata düzeltmesi, küçük iyileştirme | Agent |
+
+```bash
+./scripts/bump_version.sh patch   # veya minor
+# major: kullanıcı onayı sonrası ./scripts/bump_version.sh major
+```
+
+## 3. Commit ve push
+
+- Her başarılı döngüde commit **ve** `git push origin` (mevcut branch).
+- Mesaj formatı: `vX.Y.Z: kısa özet` (ör. `v1.4.2: takip listesi menü taşması düzeltildi`).
+- `.env` ve runtime veri dosyalarını commit etme (`backend/data/alerts_log.json` vb.).
+- Tam release (tag dahil): `make release-patch` / `make release-minor` — major için `make release-major` yalnızca onay sonrası.
+
+## İstisnalar
+
+- Sadece dokümantasyon / yorum / kural dosyası: test + bump zorunlu değil; kullanıcı aksi belirtmedikçe commit/push isteğe bağlı.
+- Kullanıcı açıkça "commit etme" derse o oturumda atla.

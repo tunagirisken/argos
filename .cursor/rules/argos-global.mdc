@@ -10,3 +10,4 @@ alwaysApply: true
 - Yorumlar Türkçe; minimal diff; `.env` commit etme.
 - Claude runtime kuralları: `ai/context/token-policy.md`.
 - Plan dosyalarını (`*.plan.md`) düzenleme.
+- Backend geliştirme sonrası döngü: `dev-workflow.mdc` (test → bump → commit → push).

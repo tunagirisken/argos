@@ -34,3 +34,7 @@ make run
 ## Değişiklik sonrası
 
 API veya scheduler değiştiyse `ai/context/api-endpoints.md` veya `architecture.md` güncelle.
+
+## Backend geliştirme döngüsü
+
+Her backend değişikliğinde: `make test-all` → `./scripts/bump_version.sh` (patch/minor; **major yalnızca kullanıcı onayı**) → commit (`vX.Y.Z: özet`) → push. Detay: `.cursor/rules/dev-workflow.mdc`.

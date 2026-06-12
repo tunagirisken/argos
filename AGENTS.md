@@ -18,8 +18,8 @@ ai/prompts/  Görev şablonları
 
 - Türkçe yorum; odaklı patch.
 - Plan dosyasını (`*.plan.md`) düzenleme.
-- Commit yalnızca kullanıcı isterse.
-- Detay: `.cursor/rules/argos-global.mdc`, `backend-python.mdc`
+- **Backend geliştirme döngüsü:** test → semver bump → commit → push (`.cursor/rules/dev-workflow.mdc`).
+- Detay: `.cursor/rules/argos-global.mdc`, `backend-python.mdc`, `dev-workflow.mdc`
 
 ## Komutlar
 
@@ -28,5 +28,7 @@ ai/prompts/  Görev şablonları
 | `make install` | venv + pip |
 | `make run` | uvicorn :8000 |
 | `make lint` | ruff (opsiyonel) |
+| `make test-all` | pytest + frontend build |
+| `make release-patch` | test → bump → commit → tag → push |
 
 Repo: `git@github.com:tunagirisken/argos.git`
